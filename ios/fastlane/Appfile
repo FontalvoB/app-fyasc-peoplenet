@@ -1,5 +1,5 @@
 # Identificación de la app en Apple (los valores vienen de CI/secrets).
-app_identifier("com.peoplenet.app")
+app_identifier("com.fyasc.peoplenet")
 
 # Opcionales para operación manual fuera de CI:
 # apple_id(ENV["APPLE_ID"]) si defines FASTLANE_USER.

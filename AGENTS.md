@@ -1,4 +1,4 @@
-# AGENTS.md — app-fombisol (PeopleNet móvil)
+# AGENTS.md — app-fyasc-peoplenet (PeopleNet móvil)
 
 Ionic React + Capacitor sobre Vite (React 18, TypeScript, Tailwind 4). Dev server en 5173 con proxy `/api` → kpis-ms `:8080` (vite.config.ts). Compila a Android/iOS con Capacitor (`android/`, `ios/`).
 

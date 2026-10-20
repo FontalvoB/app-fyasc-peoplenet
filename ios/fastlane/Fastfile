@@ -1,4 +1,4 @@
-# Fastfile — PeopleNet mobile (com.peoplenet.app)
+# Fastfile — PeopleNet mobile (com.fyasc.peoplenet)
 #
 # Flujo de autodespliegue iOS:
 #   - lane testflight : build --mode testflight (backend DEV)   → TestFlight
@@ -86,7 +86,7 @@ private_lane :prepare_signing do |options|
   match(
     type: "appstore",
     readonly: options[:readonly] != false, # en CI true: solo lee del repo de certs
-    app_identifier: "com.peoplenet.app",
+    app_identifier: "com.fyasc.peoplenet",
   )
 end
 
@@ -169,7 +169,7 @@ platform :ios do
     UI.message("Age rating config: #{rating_path}")
     update_app_age_rating(
       api_key: api_key,
-      app_identifier: "com.peoplenet.app",
+      app_identifier: "com.fyasc.peoplenet",
       age_rating_config_path: rating_path
     )
     # Paths deterministas: cwd puede ser ios/fastlane o raíz del repo según quien
@@ -183,7 +183,7 @@ platform :ios do
 
     deliver(
       api_key: api_key,
-      app_identifier: "com.peoplenet.app",
+      app_identifier: "com.fyasc.peoplenet",
       app_version: "1.0",
       build_number: options[:build_number] ? options[:build_number].to_s : nil,
       metadata_path: meta,

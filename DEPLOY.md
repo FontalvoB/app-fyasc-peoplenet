@@ -1,6 +1,6 @@
 # DEPLOY.md — Autodespliegue iOS (TestFlight / App Store) — PeopleNet mobile
 
-Arquitectura de entornos y CI/CD de `app-fombisol` (`com.peoplenet.app`).
+Arquitectura de entornos y CI/CD de `app-fyasc-peoplenet` (`com.fyasc.peoplenet`).
 **Estado: CONFIGURADO, SIN ACTIVAR.** No se ha ejecutado ningún despliegue (el equipo
 avisa cuándo arrancar; ver "Activación paso a paso" al final).
 
@@ -68,7 +68,7 @@ Firma (rediseño 2026-10-08): la firma automática ORIGINAL mintía certificados
 run y Apple los rechazó (límite agotado: "current Development certificate or a pending
 certificate request"). Ahora es determinística: secrets `APPLE_DIST_P12_BASE64` +
 `APPLE_DIST_P12_PASSWORD` (Apple Distribution 5C50BFA6, team XZSSM34MU6) y
-`APPLE_DIST_PROFILE_BASE64` (perfil App Store de com.peoplenet.app, expira 2027-10-02).
+`APPLE_DIST_PROFILE_BASE64` (perfil App Store de com.fyasc.peoplenet, expira 2027-10-02).
 Llavero efímero en el runner + archive sin firmar + export automático con API key.
 Cero certificados creados por run.
 ✔ Pipeline verde: **v1.0 build 116 subido a ASC el 2026-10-08** (run 37827671173).
@@ -87,7 +87,7 @@ local (Xcode 27) con altool → TestFlight VALID (Delivery UUID 2ee72748).
 | `ASC_APP_ID` | App ID numérico en ASC | ASC → App Details → Apple ID (ej. `6819857478`) |
 | `APPLE_TEAM_ID` | Team ID de Apple Developer | Membership details (ej. `XZSSM34MU6`) |
 
-✅ Configurados 2026-10-07: ASC_KEY_ID (7CHJDBN598 "fombisol-ci"), ASC_ISSUER_ID,
+✅ Configurados 2026-10-07: ASC_KEY_ID (7CHJDBN598 "fyasc-ci"), ASC_ISSUER_ID,
 ASC_KEY_P8_BASE64, ASC_APP_ID (6819857478), APPLE_TEAM_ID.
 
 ### Secrets ya NO requeridos (firma sin match)
@@ -129,7 +129,7 @@ la API key vía xcodebuild; match solo para el flujo manual del Fastfile.
 
 1. Configurar secrets + vars del §3 en GitHub.
 2. Inicializar repo de certificados (única vez, desde un Mac): `fastlane match appstore`.
-3. Registrar App ID `com.peoplenet.app` en developer.apple.com.
+3. Registrar App ID `com.fyasc.peoplenet` en developer.apple.com.
 4. Crear la rama `develop` del repo (si no existe) y hacer push — dispara TestFlight.
 5. Verificar en Actions que el build subió y aparece en TestFlight (puede tardar
    5-15 min en procesamiento de Apple).

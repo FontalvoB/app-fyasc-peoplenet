@@ -4,7 +4,7 @@
  * en el código Java. NO inventar campos: al agregar un tipo, leer primero el
  * DTO/entidad en kpis-ms/src/main/java/com/kpis/**.
  *
- * Convención (docs/decisions/PLAN-FOMBISOL-REVISADO.md §2):
+ * Convención (docs/decisions/PLAN-FYA-REVISADO.md §2):
  * - DTOs de transporte separados de modelos de presentación.
  * - Los ids y relaciones del backend son anulables (Long/String de Java):
  *   la UI debe tratar null como "Sin dato", nunca como cero.
@@ -482,7 +482,7 @@ export interface AprobadorResumen {
 // === M5: Documentos (ownership: oc-m5)
 // Contratos verificados contra CorporateDocumentController /
 // DocumentConfirmationController (kpis-ms) y probados contra el backend local
-// (2026-10-06). Diferencias reales frente a PLAN-FOMBISOL-REVISADO.md §4 M5:
+// (2026-10-06). Diferencias reales frente a PLAN-FYA-REVISADO.md §4 M5:
 // - GET /categories devuelve data=[{value,label}] (catálogo), NO string[].
 // - GET /{id}/download-url devuelve data={downloadUrl, expiresInMinutes}
 //   (Map.of en el controller), NO data.url.

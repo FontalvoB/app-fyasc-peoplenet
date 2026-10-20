@@ -76,12 +76,12 @@ jobs:
         env:
           PROFILE_B64: ${{ secrets.APPLE_DIST_PROFILE_BASE64 }}
         run: |
-          echo "$PROFILE_B64" | base64 --decode > /tmp/com.peoplenet.app-appstore.mobileprovision
+          echo "$PROFILE_B64" | base64 --decode > /tmp/com.fyasc.peoplenet-appstore.mobileprovision
           # Solo MobileDevice (ruta "manual"): si también está en UserData,
           # Xcode lo trata como managed y exportArchive manual falla.
           mkdir -p ~/Library/MobileDevice/"Provisioning Profiles"
-          cp /tmp/com.peoplenet.app-appstore.mobileprovision ~/Library/MobileDevice/"Provisioning Profiles"/
-          security cms -D -i /tmp/com.peoplenet.app-appstore.mobileprovision | grep -E "<key>Name|ExpirationDate" -A1 | head -4
+          cp /tmp/com.fyasc.peoplenet-appstore.mobileprovision ~/Library/MobileDevice/"Provisioning Profiles"/
+          security cms -D -i /tmp/com.fyasc.peoplenet-appstore.mobileprovision | grep -E "<key>Name|ExpirationDate" -A1 | head -4
 
       - name: Importar certificado de distribución (llavero efímero)
         timeout-minutes: 8
@@ -168,7 +168,7 @@ jobs:
           xcrun altool --upload-package build/ipa/App.ipa \
             --type ios \
             --apple-id ${{ secrets.ASC_APP_ID }} \
-            --bundle-id com.peoplenet.app \
+            --bundle-id com.fyasc.peoplenet \
             --bundle-version "$BUNDLE_VERSION" \
             --bundle-short-version-string "$SHORT_VERSION" \
             --apiKey ${{ secrets.ASC_KEY_ID }} \

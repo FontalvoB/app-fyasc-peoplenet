@@ -1,6 +1,6 @@
 /**
  * Cliente HTTP único de la app contra kpis-ms. Todo módulo que consuma el
- * backend pasa por aquí (convención Ola 0, PLAN-FOMBISOL-REVISADO.md §2):
+ * backend pasa por aquí (convención Ola 0, PLAN-FYA-REVISADO.md §2):
  *
  * - BASE_URL se resuelve en src/lib/config.ts según el modo de build
  *   (web dev usa '/api' con proxy de Vite; builds nativos usan URL absoluta
@@ -717,7 +717,7 @@ export function createSolicitud(
 // === M5 api (ownership: oc-m5)
 // Documentos corporativos + confirmaciones de lectura (kpis-ms). SOLO se
 // añaden funciones nuevas al final de este archivo; ninguna función existente
-// se modifica (convención de edición concurrente, PLAN-FOMBISOL-BACKEND.md).
+// se modifica (convención de edición concurrente, PLAN-FYA-BACKEND.md).
 // Contratos probados contra el backend local el 2026-10-06: la raíz
 // /corporate-documents es ApiResponse<List<DTO>> sin paginación; /categories
 // devuelve {value,label}; /{id}/download-url devuelve data.downloadUrl;

@@ -249,12 +249,12 @@ export const M7_BLOQUES: ReadonlyArray<M7Bloque> = [
     criterios: [
       {
         id: "a1",
-        texto: "Compromiso con la misión y los valores de FOMBISOL",
+        texto: "Compromiso con la misión y los valores de FYA",
         ejemplos: {
           1: "Su actitud refleja desconexión con la misión institucional; antepone intereses personales sin justificación.",
           2: "Cumple lo mínimo esperado en relación con los valores, sin mostrar mayor identificación con la misión.",
           3: "Actúa de forma consistente con los valores institucionales en su día a día.",
-          4: "Es un embajador visible de la misión y los valores de FOMBISOL, incluso fuera de su rol formal.",
+          4: "Es un embajador visible de la misión y los valores de FYA, incluso fuera de su rol formal.",
         },
       },
       {
@@ -291,7 +291,7 @@ export const M7_BLOQUES: ReadonlyArray<M7Bloque> = [
         id: "a5",
         texto: "Vocación de servicio hacia los programas que atendemos (PAE, Armada, Centros Penitenciarios)",
         ejemplos: {
-          1: "Muestra poca disposición o sensibilidad al atender los programas sociales que gestiona FOMBISOL.",
+          1: "Muestra poca disposición o sensibilidad al atender los programas sociales que gestiona FYA.",
           2: "Atiende los programas de forma correcta, pero sin ir más allá de lo estrictamente solicitado.",
           3: "Atiende con calidez y compromiso a los beneficiarios de PAE, Armada y Centros Penitenciarios.",
           4: "Su vocación de servicio es un ejemplo que eleva la calidad de atención de todo el programa.",

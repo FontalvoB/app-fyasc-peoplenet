@@ -21,7 +21,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-APP_ID = "com.peoplenet.app"
+APP_ID = "com.fyasc.peoplenet"
 IMPERSONATE_SA = "play-publisher-net@peoplenet-510915.iam.gserviceaccount.com"
 ANDROIDPUBLISHER = "https://www.googleapis.com/auth/androidpublisher"
 BASE = "https://androidpublisher.googleapis.com/androidpublisher/v3/applications"

@@ -1,4 +1,4 @@
-# Checklist — Publicación App Store v1.0 (PeopleNet, com.peoplenet.app)
+# Checklist — Publicación App Store v1.0 (PeopleNet, com.fyasc.peoplenet)
 
 **Objetivo:** primera versión 1.0 en revisión de Apple y publicación profesional.
 

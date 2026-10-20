@@ -1,6 +1,6 @@
 # Publicación PeopleNet — Google Play (primera versión)
 
-Guía profesional para llevar `com.peoplenet.app` (PeopleNet) a producción en Google Play.
+Guía profesional para llevar `com.fyasc.peoplenet` (PeopleNet) a producción en Google Play.
 
 **Tipo de cuenta: ORGANIZACIÓN (D-U-N-S)** → Google NO exige el requisito de
 "12 testers × 14 días en closed testing" (ese gate solo aplica a cuentas
@@ -132,7 +132,7 @@ Gráficos requeridos:
   redondeada 30% + sombra; no enviar esquinas redondeadas). Debe ser versión
   alta-fidelidad del launcher icon (no reemplaza el launcher).
 - **Feature graphic**: 1024×500, JPEG/24-bit PNG sin alpha. Sugerencia: fondo
-  corporativo Fombisol, logo + "PeopleNet — Gestión de personal". Texto centrado
+  corporativo Fya Social Capital, logo + "PeopleNet — Gestión de personal". Texto centrado
   (los bordes se recortan en formatos grandes).
 - **Screenshots**: mínimo 2 (recomendado 4-8), teléfono, 9:16 o 16:9, entre 320 y
   3840 px por lado, JPEG/PNG. Tomar capturas reales de la app (login, dashboard

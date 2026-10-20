@@ -42,7 +42,7 @@ import type {
  * - Novedades: GET /api/dashboard/activities (feed compartido SIN ids:
  *   no se inventan links por actividad ni badges de no-leído persistentes).
  * - Contadores: /api/solicitudes/stats?scope=propias y consultas M5 de
- *   documentos + confirmaciones (ver PLAN-FOMBISOL-REVISADO.md §4 M2).
+ *   documentos + confirmaciones (ver PLAN-FYA-REVISADO.md §4 M2).
  */
 
 function todayLabel(): string {

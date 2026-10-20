@@ -1,4 +1,4 @@
-package com.peoplenet.app;
+package com.fyasc.peoplenet;
 
 import com.getcapacitor.BridgeActivity;
 

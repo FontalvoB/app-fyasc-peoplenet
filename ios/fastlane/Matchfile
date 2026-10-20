@@ -5,5 +5,5 @@ if ENV["MATCH_GIT_URL"]
   git_url(ENV["MATCH_GIT_URL"])
   storage_mode("git")
   type("appstore")
-  # app_identifier se toma del Appfile (com.peoplenet.app)
+  # app_identifier se toma del Appfile (com.fyasc.peoplenet)
 end

@@ -1,14 +1,14 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
 /**
- * Configuración de Capacitor — PeopleNet (com.peoplenet.app).
+ * Configuración de Capacitor — PeopleNet (com.fyasc.peoplenet).
  *
  * La URL del backend NO se define aquí: se resuelve en build web
  * (src/lib/config.ts vía .env.[mode] / variables de CI). El contenedor
  * nativo sirve dist/ embebido y consume la API con URL absoluta.
  */
 const config: CapacitorConfig = {
-  appId: "com.peoplenet.app",
+  appId: "com.fyasc.peoplenet",
   appName: "PeopleNet",
   webDir: "dist",
   // CapacitorHttp: en nativo, fetch/XHR se enrutan por el cliente HTTP nativo

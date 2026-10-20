@@ -1,12 +1,12 @@
 — App Review information (English below) —
 
-ES: PeopleNet es la app móvil de gestión de talento humano de Fombisol. Requiere inicio de sesión: use la cuenta de demostración incluida arriba (usuario y contraseña — cuenta demo activa con datos de ejemplo). Las cuentas no se registran desde la app por diseño: se aprovisionan desde la plataforma web corporativa, porque la app está dirigida a colaboradores de organizaciones cliente.
+ES: PeopleNet es la app móvil de gestión de talento humano de Fya Social Capital. Requiere inicio de sesión: use la cuenta de demostración incluida arriba (usuario y contraseña — cuenta demo activa con datos de ejemplo). Las cuentas no se registran desde la app por diseño: se aprovisionan desde la plataforma web corporativa, porque la app está dirigida a colaboradores de organizaciones cliente.
 
 La app se conecta al backend https://peoplenet.info/api exclusivamente por HTTPS (ATS habilitado, sin excepciones). No solicita permisos de cámara, ubicación, fotos ni micrófono. No incluye compras dentro de la app, publicidad ni SDKs de terceros.
 
 Contacto durante la revisión: gerencia@fyatech.com / +57 305 392 4819 — respondemos en menos de 24 horas.
 
-EN: PeopleNet is Fombisol's mobile people-management app. It requires sign-in: use the demo account included above (username and password — active demo account with sample data). Accounts are not registered from the app by design: they are provisioned from the corporate web platform, because the app is intended for employees of client organizations.
+EN: PeopleNet is Fya Social Capital's mobile people-management app. It requires sign-in: use the demo account included above (username and password — active demo account with sample data). Accounts are not registered from the app by design: they are provisioned from the corporate web platform, because the app is intended for employees of client organizations.
 
 The app talks to https://peoplenet.info/api over HTTPS only (ATS enforced, no exceptions). It requests no camera, location, photos or microphone permissions. It contains no in-app purchases, ads or third-party SDKs.
 

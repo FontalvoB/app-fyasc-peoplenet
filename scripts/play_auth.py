@@ -20,7 +20,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-APP_ID = "com.peoplenet.app"
+APP_ID = "com.fyasc.peoplenet"
 IMPERSONATE_SA = "play-publisher-net@peoplenet-510915.iam.gserviceaccount.com"
 ANDROIDPUBLISHER = "https://www.googleapis.com/auth/androidpublisher"
 
@@ -104,7 +104,7 @@ def _adc_user_token():
     if not os.path.exists(ADC_PATH):
         die("No existe ADC de gcloud ni SA key.",
             "Regenera:\n  gcloud auth application-default login\n"
-            "  gh secret set GOOGLE_ADC_JSON -R FontalvoB/app-fombisol < $(base64 ~/.config/gcloud/application_default_credentials.json)\n"
+            "  gh secret set GOOGLE_ADC_JSON -R FontalvoB/app-fyasc-peoplenet < $(base64 ~/.config/gcloud/application_default_credentials.json)\n"
             "o crea una JSON key de play-publisher-net@ y carga GOOGLE_SA_KEY_JSON secret.")
     d = json.load(open(ADC_PATH))
     if d.get("type") != "authorized_user":

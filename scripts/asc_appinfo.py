@@ -122,7 +122,7 @@ print(f"• versión descartable {ver_str}: {vid} estado={v['attributes'].get('a
 # 4. copyright → appStoreVersions / contentRightsDeclaration → apps (attrs reales)
 st, pv = call(f"{BASE}/appStoreVersions/{vid}", "PATCH", {
     "data": {"type": "appStoreVersions", "id": vid,
-             "attributes": {"copyright": "2026 Fombisol"}}})
+             "attributes": {"copyright": "2026 Fya Social Capital"}}})
 print(("✓ copyright (version) →PATCH" if st == 200 else f"✗ version PATCH {st}: {json.dumps(pv)[:350]}"))
 
 st, pa = call(f"{BASE}/apps/{app_id}", "PATCH", {

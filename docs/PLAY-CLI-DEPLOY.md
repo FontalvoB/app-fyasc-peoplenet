@@ -1,4 +1,4 @@
-# Despliegue a Google Play desde terminal — PeopleNet (com.peoplenet.app)
+# Despliegue a Google Play desde terminal — PeopleNet (com.fyasc.peoplenet)
 
 **Método vigente: `scripts/play_publish.py`** (REST puro, sin dependencias).
 GPP (Gradle Play Publisher) quedó integrado pero deprecado en este proyecto:
@@ -62,7 +62,7 @@ play {
 ## 2. Subir y lanzar desde terminal (Mac) — método vigente
 
 ```bash
-cd app-fombisol
+cd app-fyasc-peoplenet
 
 # 1) Bump de versión en android/app/build.gradle (versionCode +1)
 

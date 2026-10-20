@@ -2,7 +2,7 @@
  * M8 + M9 + M10 — Certificados, Notificaciones y Perfil conectados al backend
  * real (kpis-ms). Todo lo que era mock de data.ts / storage pn-v2-* quedó
  * retirado: los datos vienen de la API y los estados nulos se muestran como
- * "Sin dato" (PLAN-FOMBISOL-REVISADO.md §5).
+ * "Sin dato" (PLAN-FYA-REVISADO.md §5).
  *
  * Contratos verificados en vivo (2026-10-06, fixture userId 2873 /
  * employeeId 3619):
