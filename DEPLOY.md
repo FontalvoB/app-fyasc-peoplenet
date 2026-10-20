@@ -18,6 +18,33 @@ avisa cuándo arrancar; ver "Activación paso a paso" al final).
 un build con backend placeholder rompería la app instalada. Cuando exista, cambiar
 `mode: testflight` en `.github/workflows/android-internal.yml`.
 
+## 1c. CORS requerido en el backend (Spring `people-net-back`)
+
+El allowlist se define con la variable `APP_CORS_ALLOWED_ORIGINS`
+(`app.cors.allowed-origins`, binding relaxed; default en `SecurityConfig.java`).
+
+| Origen | Cuándo hace falta |
+|---|---|
+| `https://peoplenet.info` | Web de producción |
+| `https://*.peoplenet.info` (subdominios de la web admin) | Web admin |
+| `http://localhost:4200`, `http://127.0.0.1:4200` | Web dev (Angular) |
+| `http://localhost:5173` | Vite dev del móvil |
+| `capacitor://localhost` | **App nativa iOS — TestFlight / App Store (obligatorio)** |
+| `https://localhost` | **App nativa Android (obligatorio, `androidScheme: https`)** |
+
+Notas:
+- Con `CapacitorHttp: { enabled: true }`, POST/PUT van por URLSession nativo y **no
+  pasan por CORS**; los GET salen del scheme handler de WKWebView con origen
+  `capacitor://localhost` y **sí** lo pasan → ese origen debe estar en el allowlist.
+- El WAF de peoplenet.info bloqueaba el preflight con 500 (Attack ID 20000001) —
+  con CapacitorHttp activo el preflight desaparece; si se desactiva, revisar reglas WAF.
+- Nunca `*`: el backend usa `allowCredentials=true`.
+
+Ejemplo para el entorno que recibe TestFlight (backend):
+```bash
+export APP_CORS_ALLOWED_ORIGINS="https://peoplenet.info,http://localhost:4200,http://127.0.0.1:4200,http://localhost:5173,capacitor://localhost,https://localhost"
+```
+
 ## 1b. Android (Google Play) — pipeline
 
 - `.github/workflows/android-release.yml` — reusable: npm ci → build web → cap sync →
