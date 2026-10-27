@@ -8,6 +8,8 @@
     "build": "tsc && vite build --mode development",
     "build:testflight": "tsc && vite build --mode testflight",
     "build:production": "tsc && vite build --mode production",
+    "build:pwa": "tsc && vite build --mode pwa",
+    "icons:generate": "node scripts/generate-pwa-icons.mjs",
     "preview": "vite preview",
     "ionic:build": "npm run build",
     "ionic:serve": "npm run dev",
@@ -38,8 +40,10 @@
     "@vitejs/plugin-react": "^4.3.4",
     "e2e": "^0.18.0",
     "prettier": "^3.9.9",
+    "sharp": "^0.35.5",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.7.3",
-    "vite": "^6.0.7"
+    "vite": "^6.0.7",
+    "vite-plugin-pwa": "^2.0.0"
   }
 }

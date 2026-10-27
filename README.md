@@ -25,6 +25,18 @@ npm run build
 npm run preview
 ```
 
+## PWA instalable (producción)
+
+La plataforma privada se distribuye como **PWA instalable** — sin App Store/Play:
+
+```bash
+npm run build:pwa     # dist/ con manifest.webmanifest + sw.js + íconos de marca
+npm run icons:generate  # regenera íconos PWA desde el isotipo (requiere sharp)
+```
+
+Despliegue en IIS / Windows Server (`app.fyasc.com.co`, reverse proxy `/api` →
+kpis-ms, sin CORS ni preflight del WAF): **`deploy/DEPLOY-PWA-WINDOWS-SERVER.md`**.
+
 ## App nativa con Capacitor
 
 Para compilar en iOS o Android:

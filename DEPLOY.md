@@ -1,5 +1,9 @@
 # DEPLOY.md — Autodespliegue iOS (TestFlight / App Store) — PeopleNet mobile
 
+> **Nota PWA (2026-10):** además de los pipelines de tiendas, la app se puede
+> publicar como **PWA instalable** (`app.fyasc.com.co`, IIS + reverse proxy,
+> sin tiendas). Guía completa: `deploy/DEPLOY-PWA-WINDOWS-SERVER.md`.
+
 Arquitectura de entornos y CI/CD de `app-fyasc-peoplenet` (`com.fyasc.peoplenet`).
 **Estado: CONFIGURADO, SIN ACTIVAR.** No se ha ejecutado ningún despliegue (el equipo
 avisa cuándo arrancar; ver "Activación paso a paso" al final).
