@@ -134,6 +134,12 @@ export function Login() {
       </svg>
       <div className="entry-layout">
         <section className="entry-story" aria-labelledby="entry-title">
+          <img className="entry-hero" src="/images/people/login-hero.webp" alt="" fetchPriority="high" />
+          <svg className="entry-story-wave" viewBox="0 0 900 100" preserveAspectRatio="none" aria-hidden="true">
+            <path fill="#09b6f2" d="M0 35C260 12 430 110 900 35V100H0Z" />
+            <path fill="#ffd335" d="M0 80C380 95 650 98 900 0V100H0Z" />
+            <path fill="#fbfcff" d="M0 92C230 0 480 100 900 85V100H0Z" />
+          </svg>
           <motion.div {...entrance(0, 0.94)}>
             <LoginBrand />
           </motion.div>
@@ -281,7 +287,7 @@ export function Login() {
               Tu acceso está bloqueado hasta cambiar la contraseña
             </p>
           )}
-          <div className="entry-card-divider" aria-hidden="true" />
+          <p className="entry-community"><Icon name="diversity_3" size={28} /><span>Juntos construimos un mejor lugar</span></p>
         </motion.section>
       </div>
       {help && (
