@@ -92,6 +92,11 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8080',
         changeOrigin: true,
+        configure(proxy) {
+          // Browser calls are same-origin to Vite. Do not forward its dev-only
+          // Origin to Spring's production/native CORS allowlist.
+          proxy.on('proxyReq', (request) => request.removeHeader('origin'))
+        },
       },
     },
   },

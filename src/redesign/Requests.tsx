@@ -20,7 +20,6 @@ import {
 } from "./shared";
 import {
   useApi,
-  sessionEmployeeId,
   stripDiacritics,
   toApiError,
   createSolicitud,
@@ -569,7 +568,6 @@ function SolicitudDetail({
  */
 export function RequestForm() {
   const history = useHistory();
-  const employeeId = sessionEmployeeId();
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [touchedEmpresa, setTouchedEmpresa] = useState(false);
@@ -584,9 +582,8 @@ export function RequestForm() {
   const [created, setCreated] = useState<SolicitudNovedadResponse | null>(null);
 
   // Prefill real del colaborador (snapshot del backend).
-  const me = useApi<EmpleadoAutenticadoResponse>(
-    employeeId != null ? "/solicitudes/me" : null,
-  );
+  const me = useApi<EmpleadoAutenticadoResponse>("/solicitudes/me");
+  const employeeId = me.state.data?.id ?? null;
   // Empresas activas para el selector.
   const empresas = useApi<CompanyWire[]>("/solicitudes/empresas");
   // Aprobadores del buscador (límite 50).
@@ -602,16 +599,28 @@ export function RequestForm() {
       : null,
   );
 
+  const aprobadorOptions = useMemo(() => {
+    const options = aprobadores.state.data ?? [];
+    const suggestion = sugerido.state.data;
+    return suggestion?.id != null &&
+      !options.some((a) => a.id === suggestion.id)
+      ? [suggestion, ...options]
+      : options;
+  }, [aprobadores.state.data, sugerido.state.data]);
+
   // Prefill de empresa del /me solo si el usuario no eligió una.
   useEffect(() => {
     if (touchedEmpresa) return;
     const empresaId = me.state.data?.empresaId;
-    if (empresaId != null) {
+    if (
+      empresaId != null &&
+      empresas.state.data?.some((c) => c.id === empresaId)
+    ) {
       setForm((prev) =>
         prev.empresaId ? prev : { ...prev, empresaId: String(empresaId) },
       );
     }
-  }, [me.state.data, touchedEmpresa]);
+  }, [me.state.data, empresas.state.data, touchedEmpresa]);
 
   // Sugerencia de aprobador solo si el usuario no eligió uno.
   useEffect(() => {
@@ -704,7 +713,7 @@ export function RequestForm() {
     setFormError("");
     setSubmitting(true);
     try {
-      const aprobador = aprobadores.state.data?.find(
+      const aprobador = aprobadorOptions.find(
         (a) => a.id != null && String(a.id) === form.aprobadorId,
       );
       const empresa = empresas.state.data?.find(
@@ -900,6 +909,7 @@ export function RequestForm() {
               Empresa
               <select
                 aria-label="Empresa"
+                disabled={empresas.state.status !== "success"}
                 value={form.empresaId}
                 onChange={(e) => {
                   setTouchedEmpresa(true);
@@ -918,6 +928,7 @@ export function RequestForm() {
               Aprobador
               <select
                 aria-label="Aprobador"
+                disabled={aprobadorOptions.length === 0}
                 value={form.aprobadorId}
                 onChange={(e) => {
                   setTouchedAprobador(true);
@@ -929,7 +940,7 @@ export function RequestForm() {
                     ? `Sugerido: ${sugerido.state.data.nombre ?? "Sin nombre"}`
                     : "Sin sugerencia — elige manual"}
                 </option>
-                {aprobadores.state.data?.map((a) => (
+                {aprobadorOptions.map((a) => (
                   <option key={a.id ?? ""} value={String(a.id)}>
                     {a.nombre ?? "Sin nombre"}
                     {a.liderInmediatoDelEmpleado ? " (jefe inmediato)" : ""}
@@ -938,6 +949,51 @@ export function RequestForm() {
               </select>
             </label>
           </div>
+          {me.state.status === "loading" && (
+            <LoadingNote label="Consultando tu perfil de empleado..." />
+          )}
+          {me.state.status === "error" && (
+            <SectionError
+              error={`No pudimos consultar tu perfil de empleado. ${me.state.error}`}
+              restricted={me.state.errorStatus === 403}
+              onRetry={me.reload}
+            />
+          )}
+          {empresas.state.status === "error" && (
+            <SectionError
+              error={`No pudimos cargar tus empresas. ${empresas.state.error}`}
+              restricted={empresas.state.errorStatus === 403}
+              onRetry={empresas.reload}
+            />
+          )}
+          {empresas.state.status === "loading" && (
+            <LoadingNote label="Cargando tus empresas..." />
+          )}
+          {empresas.state.status === "success" &&
+            empresas.state.data?.length === 0 && (
+              <p role="status" className="pn-info">
+                No tienes empresas activas asignadas para solicitar permisos.
+                Solicita a Gestión Humana revisar tu vinculación.
+              </p>
+            )}
+          {aprobadores.state.status === "error" && (
+            <SectionError
+              error={`No pudimos cargar los aprobadores. ${aprobadores.state.error}`}
+              restricted={aprobadores.state.errorStatus === 403}
+              onRetry={aprobadores.reload}
+            />
+          )}
+          {aprobadores.state.status === "loading" && (
+            <LoadingNote label="Cargando aprobadores..." />
+          )}
+          {aprobadores.state.status === "success" &&
+            sugerido.state.status === "success" &&
+            aprobadorOptions.length === 0 && (
+              <p role="status" className="pn-info">
+                No hay aprobadores disponibles. Solicita a Gestión Humana
+                revisar tu jefe inmediato.
+              </p>
+            )}
           {me.state.data?.nombre && (
             <p className="pn-info">
               <Icon name="person" size={15} /> {me.state.data.nombre} ·{" "}
@@ -977,7 +1033,16 @@ export function RequestForm() {
           )}
           <div className="form-actions">
             <Link to="/dashboard/requests">Cancelar</Link>
-            <Button type="submit" disabled={submitting}>
+            <Button
+              type="submit"
+              disabled={
+                submitting ||
+                me.state.status !== "success" ||
+                empresas.state.status !== "success" ||
+                !form.empresaId ||
+                !form.aprobadorId
+              }
+            >
               {submitting ? "Radicando…" : "Enviar solicitud"}
               <Icon name="send" size={18} />
             </Button>

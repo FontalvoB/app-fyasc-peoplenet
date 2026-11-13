@@ -1168,8 +1168,11 @@ textarea {
 }
 .form-two {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px;
+}
+.form-two > * {
+  min-width: 0;
 }
 .request-types {
   display: grid;
@@ -4073,6 +4076,26 @@ button.pn-button {
   background: var(--pn-bg);
   color: var(--pn-navy);
   font: 500 16px/1.5 var(--pn-font);
+}
+/* iOS date/time controls have an intrinsic native width. Keep the picker,
+   but size its field and internal value to the available grid column. */
+:is(.pn-app, .pn-modal) input:is([type="date"], [type="time"], [type="datetime-local"]) {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-inline-size: 0;
+  max-width: 100%;
+}
+:is(.pn-app, .pn-modal) input:is([type="date"], [type="time"], [type="datetime-local"])::-webkit-date-and-time-value {
+  min-width: 0;
+  text-align: left;
+}
+:is(.pn-app, .pn-modal) input:is([type="date"], [type="time"], [type="datetime-local"])::-webkit-datetime-edit {
+  min-width: 0;
+  padding: 0;
 }
 .pn-app .pn-form :is(input, textarea)::placeholder {
   color: var(--pn-muted);
