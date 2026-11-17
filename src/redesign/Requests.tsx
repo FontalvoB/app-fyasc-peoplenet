@@ -25,6 +25,7 @@ import {
   createSolicitud,
   calendarDate,
   timeLabel,
+  readSession,
 } from "../lib/api";
 import type { ApiState, SpringPage } from "../lib/api";
 import type {
@@ -38,6 +39,7 @@ import type {
   TipoSolicitudNovedad,
 } from "../lib/api-types";
 import { ESTADO_SOLICITUD_LABELS } from "../lib/api-types";
+import { ManagerDecision } from "./ManagerDecision";
 
 /**
  * M4 — Solicitudes de novedades reales contra kpis-ms.
@@ -203,6 +205,8 @@ export function Requests({ jefatura }: {
 }
 
 function RequestInbox({ asManager }: { asManager: boolean }) {
+  const [decisionBusy, setDecisionBusy] = useState(false);
+  const [decisionNotice, setDecisionNotice] = useState("");
   const [tab, setTab] = useState<Tab>("Todas");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
@@ -424,6 +428,7 @@ function RequestInbox({ asManager }: { asManager: boolean }) {
         )}
       </section>
 
+      {decisionNotice && <p role="status" className="pn-info">{decisionNotice}</p>}
       {selectedId != null && (
         <Modal
           title="Detalle de la solicitud"
@@ -433,6 +438,17 @@ function RequestInbox({ asManager }: { asManager: boolean }) {
             ) : undefined
           }
           close={() => setSelectedId(null)}
+          dismissible={!decisionBusy}
+          footer={asManager && detail.state.status === "success" && detail.state.data?.estado === "PENDIENTE_JEFE"
+            && detail.state.data.aprobadorId != null && detail.state.data.aprobadorId === readSession()?.user.employeeId
+            ? <ManagerDecision key={selectedId} solicitud={detail.state.data} onBusy={setDecisionBusy}
+              onDone={updated => {
+                setSelectedId(null);
+                setDecisionNotice(updated.estado === "APROBADA_JEFE"
+                  ? `${updated.radicado}: aprobada por el jefe. Continúa a Gestión Humana.`
+                  : `${updated.radicado}: decisión registrada (${updated.estado ? ESTADO_SOLICITUD_LABELS[updated.estado] : "sin estado"}).`);
+                mias.reload();
+              }} /> : undefined}
         >
           {detail.state.status === "loading" ? (
             <LoadingNote label="Cargando detalle…" />
@@ -567,7 +583,7 @@ function SolicitudDetail({
       )}
       <div className="pn-info">
         {solicitud.estado === "PENDIENTE_JEFE"
-          ? "Tu solicitud está pendiente del aprobador. Te avisaremos cuando responda."
+          ? "La solicitud está pendiente de la decisión del jefe."
           : solicitud.estado === "PENDIENTE_GH"
             ? "Aprobada por tu jefe; ahora está pendiente de Gestión Humana."
             : solicitud.estado === "BORRADOR"

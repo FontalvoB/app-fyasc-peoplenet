@@ -1,0 +1,6 @@
+.pn-manager-decision { display: grid; gap: 8px; width: 100%; max-height: min(55dvh, calc(var(--detail-height, 100dvh) - 150px)); overflow-y: auto; }
+.pn-manager-decision p { margin: 0; overflow-wrap: anywhere; }
+.pn-manager-decision label { font-weight: 600; }
+.pn-manager-decision :is(select, textarea) { box-sizing: border-box; width: 100%; min-width: 0; padding: 10px; border: 1px solid var(--pn-line); border-radius: 10px; background: var(--pn-surface); color: var(--pn-navy); font: inherit; font-size: 16px; }
+.pn-manager-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.pn-manager-buttons button { flex: 1; min-height: 44px; }

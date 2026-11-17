@@ -8,12 +8,14 @@ export function DetailSheet({
   children,
   close,
   footer,
+  dismissible = true,
 }: {
   title: string;
   status?: ReactNode;
   children: ReactNode;
   close: () => void;
   footer?: ReactNode;
+  dismissible?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -50,7 +52,7 @@ export function DetailSheet({
     };
   }, [controls]);
   const dismiss = async () => {
-    if (closing.current) return;
+    if (closing.current || !dismissible) return;
     closing.current = true;
     await controls.start({ opacity: 0, y: reduced ? 0 : 16, scale: 1 });
     close();
@@ -108,6 +110,7 @@ export function DetailSheet({
           autoFocus
           className="pn-icon-button"
           aria-label="Cerrar ventana"
+          disabled={!dismissible}
           onClick={() => void dismiss()}
         >
           <span className="material-symbols-outlined" aria-hidden="true">
@@ -121,6 +124,7 @@ export function DetailSheet({
           <button
             type="button"
             className="pn-button secondary"
+            disabled={!dismissible}
             onClick={() => void dismiss()}
           >
             Volver
