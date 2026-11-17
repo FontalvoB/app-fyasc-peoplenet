@@ -17,6 +17,7 @@ import {
   isAuthenticated,
   readSession,
   validateSession,
+  useApi,
 } from "../lib/api";
 import { Home } from "./Home";
 import { Login } from "./Login";
@@ -35,6 +36,9 @@ export default function Workspace() {
   const previousRoute = useRef(location.pathname);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const [starting, setStarting] = useState(true);
+  const jefatura = useApi<{ esJefe: boolean }>(
+    isAuthenticated() ? "/solicitudes/check-jefatura" : null,
+  );
   const startupValidation = useRef<Promise<unknown> | null>(null);
   const reduceMotion = useReducedMotion();
   const [search, setSearch] = useState("");
@@ -253,6 +257,14 @@ export default function Workspace() {
               <span>{label}</span>
             </Link>
           ))}
+          {jefatura.state.data?.esJefe === true && (
+            <Link to="/dashboard/requests?bandeja=jefe" onClick={() => setMenu(false)}
+              className={location.search === "?bandeja=jefe" ? "active" : ""}
+              aria-current={location.search === "?bandeja=jefe" ? "page" : undefined}>
+              <Icon name="fact_check" />
+              <span>Bandeja del jefe</span>
+            </Link>
+          )}
         </nav>
         <div className="pn-sidebar-bottom">
           <Link className="pn-assistant-card" to="/dashboard/assistant">
@@ -383,7 +395,7 @@ export default function Workspace() {
               <Kpis notify={setToast} />
             </Route>
             <Route exact path="/dashboard/requests">
-              <Requests />
+              <Requests jefatura={jefatura} />
             </Route>
             <Route path="/dashboard/requests/new">
               <RequestForm />

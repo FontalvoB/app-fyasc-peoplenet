@@ -5,7 +5,7 @@ import {
   type ChangeEvent,
   type FormEvent,
 } from "react";
-import { Link, useHistory } from "react-router-dom";
+import { Link, useHistory, useLocation } from "react-router-dom";
 import {
   Icon,
   Badge,
@@ -26,7 +26,7 @@ import {
   calendarDate,
   timeLabel,
 } from "../lib/api";
-import type { SpringPage } from "../lib/api";
+import type { ApiState, SpringPage } from "../lib/api";
 import type {
   AprobadorResumen,
   CompanyWire,
@@ -172,9 +172,15 @@ function isInFamily(estado: EstadoSolicitudNovedad | null, tab: Tab): boolean {
 // Bandeja propia — GET /solicitudes/mias + detalle /solicitudes/{id}
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function Requests() {
-  const jefatura = useApi<{ esJefe: boolean }>("/solicitudes/check-jefatura");
-  const [scope, setScope] = useState("Mis solicitudes");
+export function Requests({ jefatura }: {
+  jefatura: { state: ApiState<{ esJefe: boolean }>; reload: () => void };
+}) {
+  const location = useLocation();
+  const history = useHistory();
+  const scope = new URLSearchParams(location.search).get("bandeja") === "jefe"
+    ? "Bandeja del jefe" : "Mis solicitudes";
+  const setScope = (value: string) => history.replace(value === "Bandeja del jefe"
+    ? "/dashboard/requests?bandeja=jefe" : "/dashboard/requests");
   const asManager = scope === "Bandeja del jefe" && jefatura.state.data?.esJefe === true;
   return (
     <>
