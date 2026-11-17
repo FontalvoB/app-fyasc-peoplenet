@@ -1,5 +1,6 @@
 import type { E2EConfig } from 'e2e';
 import { web } from '@e2e-dev/web';
+import { randomUUID } from 'node:crypto';
 
 // Tests e2e deterministas (locators + assertions). Sin `agents`: no se necesita
 // modelo. Si luego se añaden pasos agent.act, definir `agents.default` con un
@@ -19,6 +20,8 @@ const app = {
 };
 
 export default {
+  // Valores desechables para las rutas simuladas; nunca credenciales reales.
+  secrets: { recoveryPassword: randomUUID(), recoveryOtherPassword: randomUUID(), recoveryCode: randomUUID() },
   targets: [
     { name: 'desktop', engine: web(), app },
     // La app es móvil (Ionic/Capacitor): mismo suite a tamaño de teléfono.

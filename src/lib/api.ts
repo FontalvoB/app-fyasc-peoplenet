@@ -193,6 +193,8 @@ function buildAuthHeaders(): Record<string, string> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface RequestOptions {
+  /** Token en memoria para completar el primer ingreso sin guardar una sesión. */
+  authToken?: string;
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   /** Objeto serializado a JSON; undefined = sin body. */
   body?: unknown;
@@ -249,6 +251,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     timeoutMs = DEFAULT_TIMEOUT_MS,
     responseType = "json",
     skipAuthRedirect = false,
+    authToken,
     signal,
   } = options;
 
@@ -261,7 +264,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
   const headers: Record<string, string> = {
     Accept: responseType === "json" ? "application/json" : "*/*",
-    ...buildAuthHeaders(),
+    ...(authToken ? { Authorization: `Bearer ${authToken}` } : buildAuthHeaders()),
   };
   if (body !== undefined) headers["Content-Type"] = "application/json";
 
@@ -372,6 +375,29 @@ export async function login(credentials: LoginRequest): Promise<LoginResponse> {
     saveSession(response.token, response); // valida que exista token
   }
   return response;
+}
+
+export interface TemporaryPasswordSession {
+  userId: number;
+  token: string;
+}
+
+/** Mismo contrato del ERP; el token del primer ingreso nunca se persiste. */
+export async function changeTemporaryPassword(
+  session: TemporaryPasswordSession,
+  newPassword: string,
+  confirmPassword: string,
+  signal: AbortSignal,
+): Promise<void> {
+  await request<string>("/auth/change-password", {
+    method: "POST",
+    body: { userId: session.userId, newPassword, confirmPassword },
+    authToken: session.token,
+    responseType: "text",
+    skipAuthRedirect: true,
+    signal,
+  });
+  logout();
 }
 
 /**
