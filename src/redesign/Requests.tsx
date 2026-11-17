@@ -174,9 +174,12 @@ function isInFamily(estado: EstadoSolicitudNovedad | null, tab: Tab): boolean {
 // Bandeja propia — GET /solicitudes/mias + detalle /solicitudes/{id}
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function Requests({ jefatura }: {
+export function Requests({ jefatura, hasPending, refreshPending }: {
   jefatura: { state: ApiState<{ esJefe: boolean }>; reload: () => void };
+  hasPending: boolean;
+  refreshPending: () => void;
 }) {
+  useEffect(() => { refreshPending(); }, [refreshPending]);
   const location = useLocation();
   const history = useHistory();
   const scope = new URLSearchParams(location.search).get("bandeja") === "jefe"
@@ -194,17 +197,18 @@ export function Requests({ jefatura }: {
       {jefatura.state.data?.esJefe === true && (
         <section className="pn-panel" aria-label="Bandejas de solicitudes">
           <div className="pn-toolbar padded">
-            <Tabs items={["Mis solicitudes", "Bandeja del jefe"]} value={scope} set={setScope} />
+            <Tabs items={["Mis solicitudes", "Bandeja del jefe"]} value={scope} set={setScope}
+              pendingItem={hasPending ? "Bandeja del jefe" : undefined} />
           </div>
         </section>
       )}
       {/* Remount on scope changes so rows, filters and open detail never cross inboxes. */}
-      <RequestInbox key={asManager ? "jefe" : "mias"} asManager={asManager} />
+      <RequestInbox key={asManager ? "jefe" : "mias"} asManager={asManager} onDecision={refreshPending} />
     </>
   );
 }
 
-function RequestInbox({ asManager }: { asManager: boolean }) {
+function RequestInbox({ asManager, onDecision }: { asManager: boolean; onDecision: () => void }) {
   const [decisionBusy, setDecisionBusy] = useState(false);
   const [decisionNotice, setDecisionNotice] = useState("");
   const [tab, setTab] = useState<Tab>("Todas");
@@ -448,6 +452,7 @@ function RequestInbox({ asManager }: { asManager: boolean }) {
                   ? `${updated.radicado}: aprobada por el jefe. Continúa a Gestión Humana.`
                   : `${updated.radicado}: decisión registrada (${updated.estado ? ESTADO_SOLICITUD_LABELS[updated.estado] : "sin estado"}).`);
                 mias.reload();
+                onDecision();
               }} /> : undefined}
         >
           {detail.state.status === "loading" ? (

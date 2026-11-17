@@ -20,6 +20,10 @@ for (const scenario of ['approve', 'reject', 'other', 'forbidden', 'busy', 'proc
       if (url.pathname === '/api/auth/me') return route.fulfill({ json: user });
       if (url.pathname === '/api/solicitudes/check-jefatura') return route.fulfill({ json: { esJefe: true } });
       if (url.pathname === '/api/solicitudes/bandeja-jefe' || url.pathname === '/api/solicitudes/mias') {
+        if (url.searchParams.get('size') === '1') {
+          await expect(url.searchParams.get('estado')).toBe('PENDIENTE_JEFE');
+          return route.fulfill({ json: { content: [], totalElements: state === 'PENDIENTE_JEFE' ? 1 : 0 } });
+        }
         lists++;
         return route.fulfill({ json: { content: [solicitud()], totalElements: 1, totalPages: 1, number: 0 } });
       }
@@ -48,6 +52,11 @@ for (const scenario of ['approve', 'reject', 'other', 'forbidden', 'busy', 'proc
     });
     await app.open(scenario === 'own' ? '/dashboard/requests' : '/dashboard/requests?bandeja=jefe');
     if (scenario === 'other') await browser.setViewport({ width: 320, height: 568 });
+    if (state === 'PENDIENTE_JEFE') {
+      await expect(screen.getByRole('button', 'Bandeja del jefe', { exact: true })).toHaveAttribute('data-pending', 'true');
+    } else {
+      await expect(screen.getByRole('button', 'Bandeja del jefe', { exact: true })).not.toHaveAttribute('data-pending', 'true');
+    }
     await screen.getByRole('button', 'Ver solicitud SOL-TEST-91', { exact: true }).tap();
     await expect(screen.getByRole('dialog').getByText('SOL-TEST-91', { exact: true })).toBeVisible();
     if (scenario === 'processed' || scenario === 'foreign' || scenario === 'own') {
@@ -87,5 +96,6 @@ for (const scenario of ['approve', 'reject', 'other', 'forbidden', 'busy', 'proc
     await expect(screen.getByRole('status')).toContainText(rejection ? 'Rechazada por jefe' : 'aprobada por el jefe');
     await expect(posts).toBe(1);
     await expect.poll(() => lists > 1).toBe(true);
+    await expect(screen.getByRole('button', 'Bandeja del jefe', { exact: true })).not.toHaveAttribute('data-pending', 'true');
   });
 }

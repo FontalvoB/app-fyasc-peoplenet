@@ -18,6 +18,7 @@ import {
   readSession,
   validateSession,
   useApi,
+  type SpringPage,
 } from "../lib/api";
 import { Home } from "./Home";
 import { Login } from "./Login";
@@ -39,6 +40,12 @@ export default function Workspace() {
   const jefatura = useApi<{ esJefe: boolean }>(
     isAuthenticated() ? "/solicitudes/check-jefatura" : null,
   );
+  const pendientesJefe = useApi<SpringPage<unknown>>(
+    jefatura.state.data?.esJefe === true
+      ? "/solicitudes/bandeja-jefe?estado=PENDIENTE_JEFE&page=0&size=1"
+      : null,
+  );
+  const hayPendientesJefe = (pendientesJefe.state.data?.totalElements ?? 0) > 0;
   const startupValidation = useRef<Promise<unknown> | null>(null);
   const reduceMotion = useReducedMotion();
   const [search, setSearch] = useState("");
@@ -260,9 +267,12 @@ export default function Workspace() {
           {jefatura.state.data?.esJefe === true && (
             <Link to="/dashboard/requests?bandeja=jefe" onClick={() => setMenu(false)}
               className={location.search === "?bandeja=jefe" ? "active" : ""}
-              aria-current={location.search === "?bandeja=jefe" ? "page" : undefined}>
+              aria-current={location.search === "?bandeja=jefe" ? "page" : undefined}
+              data-pending={hayPendientesJefe || undefined}
+              aria-description={hayPendientesJefe ? "Hay solicitudes pendientes de tu decisión" : undefined}>
               <Icon name="fact_check" />
               <span>Bandeja del jefe</span>
+              {hayPendientesJefe && <span className="pn-pending-dot" aria-hidden="true" />}
             </Link>
           )}
         </nav>
@@ -395,7 +405,8 @@ export default function Workspace() {
               <Kpis notify={setToast} />
             </Route>
             <Route exact path="/dashboard/requests">
-              <Requests jefatura={jefatura} />
+              <Requests jefatura={jefatura} hasPending={hayPendientesJefe}
+                refreshPending={pendientesJefe.reload} />
             </Route>
             <Route path="/dashboard/requests/new">
               <RequestForm />
