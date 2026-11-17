@@ -173,15 +173,39 @@ function isInFamily(estado: EstadoSolicitudNovedad | null, tab: Tab): boolean {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function Requests() {
+  const jefatura = useApi<{ esJefe: boolean }>("/solicitudes/check-jefatura");
+  const [scope, setScope] = useState("Mis solicitudes");
+  const asManager = scope === "Bandeja del jefe" && jefatura.state.data?.esJefe === true;
+  return (
+    <>
+      {jefatura.state.status === "error" && (
+        <SectionError error="No pudimos verificar tu acceso a la bandeja del jefe."
+          restricted={jefatura.state.errorStatus === 403}
+          onRetry={jefatura.reload} />
+      )}
+      {jefatura.state.data?.esJefe === true && (
+        <section className="pn-panel" aria-label="Bandejas de solicitudes">
+          <div className="pn-toolbar padded">
+            <Tabs items={["Mis solicitudes", "Bandeja del jefe"]} value={scope} set={setScope} />
+          </div>
+        </section>
+      )}
+      {/* Remount on scope changes so rows, filters and open detail never cross inboxes. */}
+      <RequestInbox key={asManager ? "jefe" : "mias"} asManager={asManager} />
+    </>
+  );
+}
+
+function RequestInbox({ asManager }: { asManager: boolean }) {
   const [tab, setTab] = useState<Tab>("Todas");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
   const term = query.trim();
-  // Bandeja propia paginada; searchTerm lo filtra el backend.
+  // El servidor resuelve al aprobador desde el JWT, igual que en el ERP.
   const mias = useApi<SpringPage<SolicitudNovedadResponse>>(
-    `/solicitudes/mias?page=${page}&size=20${
+    `/solicitudes/${asManager ? "bandeja-jefe" : "mias"}?page=${page}&size=20${
       term ? `&searchTerm=${encodeURIComponent(stripDiacritics(term))}` : ""
     }`,
   );
@@ -213,8 +237,8 @@ export function Requests() {
     <>
       <PageHero
         eyebrow="TU TIEMPO TAMBIÉN IMPORTA"
-        title="Permisos y solicitudes"
-        description="Organiza tus ausencias y sigue cada solicitud, sin complicaciones."
+        title={asManager ? "Bandeja del jefe" : "Permisos y solicitudes"}
+        description={asManager ? "Consulta las solicitudes asignadas a tu revisión." : "Organiza tus ausencias y sigue cada solicitud, sin complicaciones."}
         action={
           <Link className="pn-button" to="/dashboard/requests/new">
             <Icon name="add" /> Nueva solicitud
@@ -250,7 +274,7 @@ export function Requests() {
           <Search
             value={query}
             onChange={setQuery}
-            placeholder="Buscar en tus solicitudes…"
+            placeholder={asManager ? "Buscar en la bandeja del jefe…" : "Buscar en tus solicitudes…"}
           />
         </div>
 
@@ -261,7 +285,7 @@ export function Requests() {
             onRetry={mias.reload}
           />
         ) : isInitialLoading ? (
-          <LoadingNote label="Cargando tus solicitudes…" />
+          <LoadingNote label={asManager ? "Cargando solicitudes asignadas…" : "Cargando tus solicitudes…"} />
         ) : (
           <>
             <div className="pn-table-wrap">
@@ -270,7 +294,7 @@ export function Requests() {
                   <tr>
                     <th>Solicitud</th>
                     <th>Periodo</th>
-                    <th>Aprobador</th>
+                    <th>{asManager ? "Colaborador" : "Aprobador"}</th>
                     <th>Estado</th>
                     <th />
                   </tr>
@@ -293,7 +317,7 @@ export function Requests() {
                         </button>
                       </td>
                       <td>{rango(r.fechaDesde, r.fechaHasta)}</td>
-                      <td>{r.aprobadorNombre ?? "Sin dato"}</td>
+                      <td>{(asManager ? r.colaboradorNombre : r.aprobadorNombre) ?? "Sin dato"}</td>
                       <td>
                         <Badge>
                           {r.estado != null
@@ -346,7 +370,7 @@ export function Requests() {
                   <div className="request-card-person">
                     <Icon name="person" size={17} />
                     <span>
-                      Revisa: {r.aprobadorNombre ?? "Sin dato"}
+                      {asManager ? "Solicita: " : "Revisa: "}{(asManager ? r.colaboradorNombre : r.aprobadorNombre) ?? "Sin dato"}
                       {r.estado != null
                         ? ` · ${ESTADO_SOLICITUD_LABELS[r.estado]}`
                         : ""}
@@ -387,7 +411,7 @@ export function Requests() {
               <div className="table-footer">
                 {term
                   ? "Ninguna solicitud coincide con la búsqueda."
-                  : "Aún no has radicado solicitudes."}
+                  : asManager ? "No tienes solicitudes asignadas en esta bandeja." : "Aún no has radicado solicitudes."}
               </div>
             )}
           </>
