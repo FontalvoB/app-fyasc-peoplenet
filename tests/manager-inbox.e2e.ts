@@ -1,9 +1,9 @@
 import { test } from '@e2e-dev/web';
 import { expect } from 'e2e';
 
-for (const scenario of ['manager', 'employee', 'denied', 'retry'] as const) {
+for (const scenario of ['manager', 'employee', 'denied', 'retry', 'menu'] as const) {
   test(`bandeja del jefe: ${scenario}`, async ({ app, browser, screen }) => {
-    const user = { userId: 36, username: 'innovations', employeeId: 16, roles: [] };
+    const user = { userId: 36, username: 'innovations', employeeId: 16, roles: [{ id: 2, name: 'SUPERVISOR' }] };
     let checkFailed = scenario === 'retry';
     let managerRequests = 0;
     const assigned = { id: 1, radicado: 'SOL-2026-0001', tipo: 'VACACIONES', estado: 'PENDIENTE_JEFE',
@@ -45,7 +45,15 @@ for (const scenario of ['manager', 'employee', 'denied', 'retry'] as const) {
       checkFailed = false;
       await screen.getByRole('button', 'Reintentar').tap();
     }
-    await screen.getByRole('button', 'Bandeja del jefe', { exact: true }).tap();
+    if (scenario === 'menu') {
+      if (await browser.evaluate(() => window.innerWidth < 1024)) {
+        await screen.getByRole('button', 'Más opciones', { exact: true }).tap();
+      }
+      await screen.getByRole('link', 'Bandeja del jefe', { exact: true }).tap();
+      await expect(browser).toHaveURL(/bandeja=jefe/);
+    } else {
+      await screen.getByRole('button', 'Bandeja del jefe', { exact: true }).tap();
+    }
     await expect(screen.getByRole('heading', 'Bandeja del jefe')).toBeVisible();
     await expect(screen.getByText('SOL-PROPIA')).toHaveCount(0);
     if (scenario === 'denied') {

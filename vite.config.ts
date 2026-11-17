@@ -30,6 +30,7 @@ export default defineConfig(({ mode }) => {
      *   lugar de precache, para no encarecer el primer arranque.
      */
     VitePWA({
+      injectRegister: false,
       registerType: 'autoUpdate',
       // public/ completo ya cae en precache vía globPatterns (íconos, imágenes,
       // fuentes de texto); no se necesita includeAssets extra.
@@ -66,6 +67,8 @@ export default defineConfig(({ mode }) => {
         ],
       },
       workbox: {
+        skipWaiting: true,
+        clientsClaim: true,
         // Shell + assets del build y de public/ (íconos, imágenes y las dos
         // fuentes de texto). MaterialSymbols queda fuera por tamaño (10 MB).
         globPatterns: ['**/*.{js,css,html,svg,png,jpg,ico}', 'fonts/{DMSans,Manrope}.ttf'],

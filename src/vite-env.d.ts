@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+/// <reference types="vite-plugin-pwa/vanillajs" />
 
 /** Variables de entorno disponibles en la app (definidas en .env.[mode] o inyectadas por CI). */
 interface ImportMetaEnv {
