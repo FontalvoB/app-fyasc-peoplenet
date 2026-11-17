@@ -4,7 +4,19 @@ import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 import { VitePWA } from 'vite-plugin-pwa'
 
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  if (mode === 'pwa') {
+    // El deploy PWA es same-origin POR DISEÑO: '/api' relativa servida por el
+    // reverse proxy de IIS del mismo sitio (sin CORS ni preflight).
+    // Pin inmutable: config.ts da prioridad a la env var del PROCESO sobre
+    // .env.pwa, así que una VITE_API_BASE_URL ambiental (p. ej. una var de
+    // Machine heredada por el build en el server) se hornearía al bundle y
+    // rompería el routing (cross-origin + IP local = bloqueo CORS/PNA de
+    // Chrome). Si algún día la PWA se sirve en otro origen que la API,
+    // cambiar este pin y el allowlist CORS del backend, no env vars sueltas.
+    process.env.VITE_API_BASE_URL = '/api'
+  }
+  return {
   plugins: [
     react(),
     tailwindcss(),
@@ -100,4 +112,5 @@ export default defineConfig({
       },
     },
   },
+  }
 })
