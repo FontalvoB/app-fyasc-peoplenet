@@ -1,8 +1,10 @@
 import { useRef, useState, type FormEvent } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useHistory } from "react-router-dom";
-import { Icon, Modal } from "./shared";
-import { login, toApiError } from "../lib/api";
+import { Icon } from "./shared";
+import { PasswordRecovery } from "./PasswordRecovery";
+import { TemporaryPasswordChange } from "./TemporaryPasswordChange";
+import { login, toApiError, type TemporaryPasswordSession } from "../lib/api";
 import logo from "./assets/peoplenet-mark.svg";
 import "./login.css";
 
@@ -42,8 +44,7 @@ function LoginBrand() {
  * - Sin credenciales ni entrada demo hardcodeadas.
  * - El botón se deshabilita durante el submit para evitar doble petición.
  * - Errores en español (credencial inválida, red, 5xx).
- * - requirePasswordChange=true: mensaje claro y avance bloqueado (la sesión
- *   no se guarda: api.login() no persiste en ese caso).
+ * - requirePasswordChange=true: cambiar la contraseña antes de crear sesión.
  */
 export function Login() {
   const history = useHistory();
@@ -79,13 +80,14 @@ export function Login() {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [passwordChangeRequired, setPasswordChangeRequired] = useState(false);
+  const [temporarySession, setTemporarySession] = useState<TemporaryPasswordSession | null>(null);
+  const [notice, setNotice] = useState("");
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (submitting) return;
     setError("");
-    setPasswordChangeRequired(false);
+    setNotice("");
     const user = username.trim();
     const pass = password;
     if (!user || !pass) {
@@ -96,13 +98,11 @@ export function Login() {
     try {
       const response = await login({ username: user, password: pass });
       if (response.requirePasswordChange === true) {
-        // Cuenta bloqueada por política de cambio de contraseña: no avanzar
-        // ni crear sesión (decisión O0; flujo de cambio pendiente de backend).
-        setPasswordChangeRequired(true);
-        setError(
-          "Tu cuenta requiere cambiar la contraseña antes de continuar. " +
-            "Usa la opción de recuperación de acceso o contacta a Gestión Humana.",
-        );
+        if (!response.token || response.userId == null) {
+          throw new Error("No se pudo iniciar el cambio de contraseña. Intenta ingresar nuevamente.");
+        }
+        setPassword("");
+        setTemporarySession({ userId: response.userId, token: response.token });
         return;
       }
       history.push("/dashboard");
@@ -282,21 +282,23 @@ export function Login() {
               {!submitting && <Icon name="arrow_forward" size={26} />}
             </motion.button>
           </form>
-          {passwordChangeRequired && (
-            <p className="entry-blocked">
-              Tu acceso está bloqueado hasta cambiar la contraseña
-            </p>
-          )}
+          {notice && <p className="entry-blocked" role="status">{notice}</p>}
           <p className="entry-community"><Icon name="diversity_3" size={28} /><span>Juntos construimos un mejor lugar</span></p>
         </motion.section>
       </div>
       {help && (
-        <Modal title="Recupera tu acceso" close={closeHelp}>
-          <p className="entry-help">
-            Si olvidaste tu contraseña o tu usuario, contacta a Gestión Humana
-            para recuperar tu acceso.
-          </p>
-        </Modal>
+        <PasswordRecovery initialEmail={username} close={closeHelp}
+          onReset={() => { setPassword(""); setError(""); }} />
+      )}
+      {temporarySession && (
+        <TemporaryPasswordChange session={temporarySession}
+          close={() => { setTemporarySession(null); setPassword(""); }}
+          onChanged={() => {
+            setTemporarySession(null);
+            setPassword("");
+            setError("");
+            setNotice("Contraseña actualizada. Inicia sesión con tu nueva contraseña.");
+          }} />
       )}
     </main>
   );
