@@ -221,10 +221,12 @@ export function Tabs({
   items,
   value,
   set,
+  pendingItem,
 }: {
   items: string[];
   value: string;
   set: (v: string) => void;
+  pendingItem?: string;
 }) {
   return (
     <div className="pn-tabs">
@@ -234,8 +236,11 @@ export function Tabs({
           aria-pressed={value === x}
           className={value === x ? "active" : ""}
           onClick={() => set(x)}
+          data-pending={pendingItem === x || undefined}
+          aria-description={pendingItem === x ? "Hay solicitudes pendientes de tu decisión" : undefined}
         >
           {x}
+          {pendingItem === x && <span className="pn-pending-dot" aria-hidden="true" />}
         </button>
       ))}
     </div>
