@@ -196,7 +196,7 @@ export interface RequestOptions {
   /** Token en memoria para completar el primer ingreso sin guardar una sesión. */
   authToken?: string;
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
-  /** Objeto serializado a JSON; undefined = sin body. */
+  /** Objeto serializado a JSON o FormData para adjuntos; undefined = sin body. */
   body?: unknown;
   timeoutMs?: number;
   responseType?: "json" | "text" | "blob";
@@ -266,14 +266,15 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     Accept: responseType === "json" ? "application/json" : "*/*",
     ...(authToken ? { Authorization: `Bearer ${authToken}` } : buildAuthHeaders()),
   };
-  if (body !== undefined) headers["Content-Type"] = "application/json";
+  const isFormData = body instanceof FormData;
+  if (body !== undefined && !isFormData) headers["Content-Type"] = "application/json";
 
   let response: Response;
   try {
     response = await fetch(requestUrl(path), {
       method,
       headers,
-      body: body === undefined ? null : JSON.stringify(body),
+      body: isFormData ? body : body === undefined ? null : JSON.stringify(body),
       signal: controller.signal,
     });
   } catch (error) {
@@ -895,37 +896,14 @@ export function confirmDocumentRead(
 }
 // === fin M5 api
 
-// === M8-M10 api (ownership: oc-m5)
-// SOLO funciones nuevas al final (convención de edición concurrente). Todos
-// los contratos probados en vivo el 2026-10-06; listados DIRECTOS sin
-// envoltorio ApiResponse (certificados, activities, profile-summary, about-me).
+// === Notificaciones y perfil
 
 import type {
   AboutMeResponse,
-  CertificateResponse,
   DashboardActivityDto,
   EmployeeProfileSummary,
 } from "./api-types";
 // NOTA: LoginResponse ya está importado arriba en este archivo (Ola 0).
-
-/** GET /api/certificates/employee/{employeeId} — lista directa (sin envelope).
- * 403 = sin permiso documentos.certificados → la UI muestra sección
- * restringida; NUNCA convertir el error en array vacío. */
-export function useEmployeeCertificates(employeeId: number | null) {
-  return useApi<CertificateResponse[]>(
-    employeeId != null ? `/certificates/employee/${employeeId}` : null,
-  );
-}
-
-/**
- * GET /api/certificates/{id}/download — PDF real (60 s, plan §2). El backend
- * reporta errores como JSON {error,timestamp} (500) o 404 vacío: request()
- * los convierte en ApiError con mensaje amigable y el llamador NUNCA guarda
- * el body de un status de error como PDF.
- */
-export function downloadCertificate(id: number): Promise<Blob> {
-  return requestBlob(`/certificates/${id}/download`, { timeoutMs: 60_000 });
-}
 
 /** GET /api/dashboard/activities — feed directo sin ids (M9; lo comparte M2
  * para la campanita). Sin marcadores de lectura: no existen en el contrato. */

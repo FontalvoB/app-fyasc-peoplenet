@@ -17,7 +17,7 @@
  *   con explicación (decisión pendiente del plan).
  * - M10: GET /api/auth/me (identidad), GET /api/employees/{id}/profile-summary
  *   (estado REAL del empleado — se muestra, no se edita), GET/PUT
- *   /api/employees/{id}/about-me (única escritura con contrato verificado).
+ *   /api/employees/{id}/about-me, además de las acciones de foto y contraseña.
  *   Nombre/correo/teléfono se muestran SOLO LECTURA: no existe contrato de
  *   edición personal. Sin claves demo (pn-v2-profile/email-notice retiradas).
  *
@@ -28,7 +28,6 @@
 import { useEffect, useState } from "react";
 import {
   Icon,
-  Avatar,
   Button,
   Badge,
   PageHero,
@@ -38,18 +37,23 @@ import {
 } from "./shared";
 import {
   displayName,
-  downloadCertificate,
   initialsOf,
   sessionEmployeeId,
   toApiError,
   updateAboutMe,
   useAboutMe,
   useDashboardActivities,
-  useEmployeeCertificates,
   useMyIdentity,
   useProfileSummary,
 } from "../lib/api";
-import type { CertificateResponse } from "../lib/api-types";
+import {
+  downloadSelfCertificate,
+  issueSelfCertificate,
+  previewSelfCertificate,
+  useSelfCertificates,
+  type SelfCertificate,
+} from "../lib/self-certificates";
+import { ProfileActions, ProfilePhoto } from "./ProfileActions";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Ayudantes de presentación (locales; los datos siempre vienen de la API)
@@ -131,42 +135,75 @@ function certTypeIcon(type: string | null): string {
 // M8 — Certificados (/dashboard/certificates)
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Autoservicio actual: /api/certificates/me sustituye el contrato histórico de M8.
 export function Certificates(_props: { name?: string }) {
-  const employeeId = sessionEmployeeId();
-  const certificates = useEmployeeCertificates(employeeId);
-  const [downloadStatus, setDownloadStatus] = useState<
-    "idle" | "loading" | "error"
-  >("idle");
+  const [page, setPage] = useState(0);
+  const { state, reload } = useSelfCertificates(page);
+  const list = state.status === "success" && state.data?.currentPage === page ? state.data : null;
+  const [action, setAction] = useState<"preview" | "issue" | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<Blob | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [issued, setIssued] = useState<SelfCertificate | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
 
-  const handleDownload = async (cert: CertificateResponse) => {
-    if (cert.id == null) return;
-    setDownloadingId(cert.id);
-    setDownloadStatus("loading");
-    setDownloadError(null);
+  useEffect(() => {
+    const url = preview ? URL.createObjectURL(preview) : null;
+    setPreviewUrl(url);
+    return () => {
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [preview]);
+
+  const handlePreview = async () => {
+    setAction("preview");
+    setActionError(null);
+    setIssued(null);
     try {
-      const blob = await downloadCertificate(cert.id);
-      if (!blob || blob.size === 0) {
-        throw new Error("El servidor devolvió un archivo vacío.");
-      }
-      // Mismo patrón de nombre que Content-Disposition del backend.
-      saveBlob(blob, `Certificado_${cert.certificateNumber ?? cert.id}.pdf`);
-      setDownloadStatus("idle");
-      setDownloadingId(null);
+      setPreview(await previewSelfCertificate());
     } catch (error) {
-      setDownloadError(
-        toApiError(error).message ||
-          "No se pudo descargar el certificado. Inténtalo de nuevo.",
-      );
-      setDownloadStatus("error");
+      setActionError(toApiError(error).message);
+    } finally {
+      setAction(null);
     }
   };
 
-  const retry = () => {
-    certificates.reload();
-    setDownloadStatus("idle");
+  const handleIssue = async () => {
+    setAction("issue");
+    setActionError(null);
+    try {
+      setIssued(await issueSelfCertificate());
+      setPreview(null);
+      if (page === 0) reload();
+      else setPage(0);
+    } catch (error) {
+      const apiError = toApiError(error);
+      if (apiError.isTimeout) {
+        setPreview(null);
+        setActionError(`${apiError.message} Revisa el historial antes de volver a emitir.`);
+        if (page === 0) reload();
+        else setPage(0);
+      } else {
+        setActionError(apiError.message);
+      }
+    } finally {
+      setAction(null);
+    }
+  };
+
+  const handleDownload = async (cert: SelfCertificate) => {
+    if (cert.id == null || downloadingId != null) return;
+    setDownloadingId(cert.id);
     setDownloadError(null);
+    try {
+      const blob = await downloadSelfCertificate(cert.id);
+      saveBlob(blob, `Certificado_${cert.certificateNumber ?? cert.id}.pdf`);
+    } catch (error) {
+      setDownloadError(toApiError(error).message);
+    } finally {
+      setDownloadingId(null);
+    }
   };
 
   return (
@@ -174,63 +211,74 @@ export function Certificates(_props: { name?: string }) {
       <PageHero
         eyebrow="LO QUE NECESITAS, A TU ALCANCE"
         title="Tus certificados, sin vueltas."
-        description="Constancias reales expedidas por la empresa, listas para descargar."
+        description="Genera tu certificado laboral y consulta tus constancias expedidas."
+        action={
+          list && !preview ? (
+            <Button disabled={action !== null} onClick={() => void handlePreview()}>
+              <Icon name="add" />
+              {action === "preview" ? "Preparando vista previa…" : "Generar certificado laboral"}
+            </Button>
+          ) : undefined
+        }
       />
-      <img
-        className="editorial-certificate-photo"
-        src="/images/people/trayectoria.jpg"
-        alt="Una profesional de talento humano entrega una carpeta a un colaborador"
-        width="1536"
-        height="1024"
-        loading="lazy"
-      />
-      {/* FIX-1 B (admin sin employeeId): estado explícito en vez de área vacía. */}
-      {employeeId == null ? (
-        <p className="pn-info" role="status">
-          Los certificados requieren un colaborador asociado a tu usuario.
-        </p>
-      ) : (
-        <>
-          {certificates.state.status === "loading" &&
-            !certificates.state.data && (
-              <LoadingNote label="Cargando certificados…" />
-            )}
-          {certificates.state.status === "error" &&
-            !certificates.state.data && (
-              <SectionError
-                error={certificates.state.error ?? "Error inesperado."}
-                restricted={certificates.state.errorStatus === 403}
-                onRetry={retry}
-              />
-            )}
-          {certificates.state.status === "error" &&
-            certificates.state.data != null && (
-              <div
-                className="pn-info"
-                role="alert"
-                style={{ color: "var(--pn-danger)" }}
-              >
-                <Icon name="cloud_off" size={16} /> No se pudo actualizar la
-                lista: {certificates.state.error}{" "}
-                <Button secondary onClick={retry}>
-                  Reintentar
-                </Button>
-              </div>
-            )}
-        </>
+      {!preview && (
+        <img
+          className="editorial-certificate-photo"
+          src="/images/people/trayectoria.jpg"
+          alt="Una profesional de talento humano entrega una carpeta a un colaborador"
+          width="1536"
+          height="1024"
+          loading="lazy"
+        />
       )}
-      {certificates.state.status === "success" &&
-        (certificates.state.data ?? []).length === 0 && (
+      {!list && state.status !== "error" && <LoadingNote label="Cargando certificados…" />}
+      {state.status === "error" && (
+        <SectionError
+          error={state.error ?? "Error inesperado."}
+          restricted={state.errorStatus === 403}
+          onRetry={reload}
+        />
+      )}
+      {preview && previewUrl && (
+        <section className="pn-panel pn-paper">
+          <h2>Vista previa del certificado laboral</h2>
+          <img
+            src={previewUrl}
+            alt="Vista previa del certificado laboral"
+            style={{ display: "block", width: "100%", maxWidth: 640, height: "auto" }}
+          />
+          <div className="cert-actions">
+            <Button disabled={action !== null || state.errorStatus === 403} onClick={() => void handleIssue()}>
+              {action === "issue" ? "Emitiendo…" : "Emitir certificado"}
+            </Button>
+            <Button secondary disabled={action !== null} onClick={() => {
+              setPreview(null);
+              setActionError(null);
+            }}>
+              Cancelar
+            </Button>
+          </div>
+        </section>
+      )}
+      {actionError && <p className="pn-info" role="alert">{actionError}</p>}
+      {issued && (
+        <div className="pn-info">
+          <span role="status">Certificado {issued.certificateNumber} emitido.</span>{" "}
+          <Button secondary disabled={downloadingId != null} onClick={() => void handleDownload(issued)}>
+            <Icon name="download" /> {downloadingId === issued.id ? "Descargando…" : "Descargar PDF"}
+          </Button>
+        </div>
+      )}
+      {list?.content.length === 0 && page === 0 && (
           <div className="pn-empty">
             <Icon name="workspace_premium" size={36} />
             <h2>Aún no tienes certificados</h2>
-            <p>Cuando la empresa expida constancias aparecerán aquí.</p>
+            <p>Los certificados emitidos aparecerán aquí.</p>
           </div>
         )}
-      {certificates.state.status === "success" &&
-        (certificates.state.data ?? []).length > 0 && (
+      {list && list.content.length > 0 && (
           <div className="pn-doc-grid cert-grid">
-            {(certificates.state.data ?? []).map((cert, i) => (
+            {list.content.map((cert, i) => (
               <article
                 className="cert-card"
                 key={cert.id ?? `cert-${i}`}
@@ -279,13 +327,12 @@ export function Certificates(_props: { name?: string }) {
                     secondary
                     disabled={
                       cert.id == null ||
-                      (downloadStatus === "loading" &&
-                        downloadingId === cert.id)
+                      downloadingId != null
                     }
                     onClick={() => void handleDownload(cert)}
                   >
                     <Icon name="download" />{" "}
-                    {downloadingId === cert.id && downloadStatus === "loading"
+                    {downloadingId != null && downloadingId === cert.id
                       ? "Descargando…"
                       : "Descargar PDF"}
                   </Button>
@@ -294,16 +341,23 @@ export function Certificates(_props: { name?: string }) {
             ))}
           </div>
         )}
-      {downloadStatus === "error" && downloadError && (
+      {list && (page > 0 || list.hasNextPage) && (
+        <nav className="cert-actions" aria-label="Páginas de certificados">
+          <Button secondary disabled={!list.hasPreviousPage} onClick={() => setPage(page - 1)}>
+            Anterior
+          </Button>
+          <Button secondary disabled={!list.hasNextPage} onClick={() => setPage(page + 1)}>
+            Siguiente
+          </Button>
+        </nav>
+      )}
+      {downloadError && (
         <div
           className="pn-info"
           role="alert"
           style={{ color: "var(--pn-danger)" }}
         >
-          <Icon name="cloud_off" size={16} /> {downloadError}{" "}
-          <Button secondary onClick={retry}>
-            Reintentar
-          </Button>
+          <Icon name="cloud_off" size={16} /> {downloadError}
         </div>
       )}
     </>
@@ -404,9 +458,6 @@ export function Profile(_props: {
   const summary = useProfileSummary(employeeId);
   const aboutMe = useAboutMe(employeeId);
 
-  // Edición acotada: SOLO about-me tiene contrato verificado (PUT). Nombre,
-  // correo y teléfono se muestran en lectura: sin contrato de edición personal
-  // (decisión pendiente del plan). Nada se guarda en storage.
   const [aboutText, setAboutText] = useState("");
   const [aboutStatus, setAboutStatus] = useState<
     "idle" | "loading" | "done" | "error"
@@ -479,7 +530,7 @@ export function Profile(_props: {
       <div className="pn-profile-layout">
         <section className="pn-panel profile-summary">
           <div className="profile-cover" />
-          <Avatar name={initialsOf(fullName)} />
+          <ProfilePhoto initials={initialsOf(fullName)} enabled={employeeId != null} />
           <h2>{fullName}</h2>
           <p>{person?.positionName ?? "Sin dato"}</p>
           <Badge>{employeeStatusLabel(person?.status)}</Badge>
@@ -581,6 +632,9 @@ export function Profile(_props: {
               )}
             </>
           )}
+        </div>
+        <div style={{ gridColumn: "1 / -1" }}>
+          <ProfileActions />
         </div>
       </div>
     </>
