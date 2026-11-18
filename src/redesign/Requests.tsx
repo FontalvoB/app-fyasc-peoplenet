@@ -23,6 +23,7 @@ import {
   stripDiacritics,
   toApiError,
   createSolicitud,
+  getSolicitud,
   calendarDate,
   timeLabel,
   readSession,
@@ -40,6 +41,13 @@ import type {
 } from "../lib/api-types";
 import { ESTADO_SOLICITUD_LABELS } from "../lib/api-types";
 import { ManagerDecision } from "./ManagerDecision";
+import {
+  MAX_ATTACH_BYTES,
+  fileToBase64,
+  FormAttachmentList,
+  FormAsideAttachmentSummary,
+  DetailAttachments,
+} from "./RequestsAttachments";
 
 /**
  * M4 — Solicitudes de novedades reales contra kpis-ms.
@@ -132,17 +140,7 @@ function historialIcon(decision: string | null): string {
   return "check_circle";
 }
 
-/** Bytes → "245 KB"; null → "Sin dato". */
-function fileLabel(n: number | null): string {
-  if (n == null || n < 0) return "Sin dato";
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
-}
 
-/** Límite de adjunto alineado al backend (DocumentoUploadRequest: base64
- * aceptado solo si el archivo es < 5 MB; el server lo re-verifica). */
-const MAX_ATTACH_BYTES = 5 * 1024 * 1024;
 
 /** Pestañas de familia: el backend solo acepta UN estado en el parámetro
  * (EstadoSolicitudNovedad.valueOf de un valor), así que las familias se
@@ -464,7 +462,7 @@ function RequestInbox({ asManager, onDecision }: { asManager: boolean; onDecisio
               onRetry={detail.reload}
             />
           ) : detail.state.data ? (
-            <SolicitudDetail solicitud={detail.state.data} />
+            <SolicitudDetail key={selectedId} solicitud={detail.state.data} />
           ) : (
             <p className="pn-info" role="status">
               Sin detalle disponible.
@@ -482,6 +480,12 @@ function SolicitudDetail({
 }: {
   solicitud: SolicitudNovedadResponse;
 }) {
+  const reloadAttachments = (): Promise<SolicitudNovedadResponse> => {
+    if (solicitud.id == null) {
+      return Promise.reject(new Error("No hay identificador de solicitud disponible."));
+    }
+    return getSolicitud(solicitud.id);
+  };
   return (
     <>
       <h3>Información de la solicitud</h3>
@@ -558,16 +562,10 @@ function SolicitudDetail({
         </dd>
       </dl>
       {(solicitud.documentos?.length ?? 0) > 0 && (
-        <>
-          <h3>Soportes adjuntos</h3>
-          {solicitud.documentos?.map((doc) => (
-            <p className="pn-info" key={doc.id ?? doc.nombreArchivo ?? ""}>
-              <Icon name="attach_file" size={15} />
-              {doc.nombreArchivo ?? "Archivo"} · {fileLabel(doc.tamanoBytes)}
-              {doc.downloadUrl ? " · descarga disponible" : ""}
-            </p>
-          ))}
-        </>
+        <DetailAttachments
+          documentos={solicitud.documentos!}
+          onReloadDetail={reloadAttachments}
+        />
       )}
       {(solicitud.historial?.length ?? 0) > 0 && (
         <div className="request-timeline">
@@ -624,9 +622,10 @@ export function RequestForm() {
   const [touchedEmpresa, setTouchedEmpresa] = useState(false);
   const [touchedAprobador, setTouchedAprobador] = useState(false);
   const [fileError, setFileError] = useState("");
-  const [attach, setAttach] = useState<SolicitudDocumentoUploadRequest | null>(
-    null,
+  const [attaches, setAttaches] = useState<SolicitudDocumentoUploadRequest[]>(
+    [],
   );
+  const [readingAttachments, setReadingAttachments] = useState(false);
   const [fieldError, setFieldError] = useState("");
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -697,30 +696,39 @@ export function RequestForm() {
       .slice(0, 10);
   }
 
-  async function handleFile(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    if (file.size >= MAX_ATTACH_BYTES) {
-      event.target.value = "";
-      setAttach(null);
-      setFileError(
-        "El archivo supera el límite de 5 MB que acepta el servidor. Adjunta uno menor o continúa sin soporte.",
-      );
-      return;
+  async function handleFiles(event: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.currentTarget.files ?? []);
+    event.currentTarget.value = "";
+    if (!files.length || readingAttachments || submitting) return;
+
+    setReadingAttachments(true);
+    setFileError("");
+    const accepted: SolicitudDocumentoUploadRequest[] = [];
+    const errors: string[] = [];
+    for (const file of files) {
+      const mimeType = file.type || (file.name.toLowerCase().endsWith(".pdf") ? "application/pdf" : "");
+      if (file.size === 0 || file.size >= MAX_ATTACH_BYTES) {
+        errors.push(`${file.name}: selecciona un archivo de menos de 5 MB que no esté vacío.`);
+        continue;
+      }
+      if (mimeType !== "application/pdf" && !mimeType.startsWith("image/")) {
+        errors.push(`${file.name}: selecciona un PDF o una imagen.`);
+        continue;
+      }
+      try {
+        accepted.push({
+          nombreArchivo: file.name,
+          mimeType,
+          tamanoBytes: file.size,
+          base64: await fileToBase64(file),
+        });
+      } catch {
+        errors.push(`No se pudo leer ${file.name}.`);
+      }
     }
-    try {
-      const base64 = await fileToBase64(file);
-      setAttach({
-        nombreArchivo: file.name,
-        mimeType: file.type || "application/octet-stream",
-        tamanoBytes: file.size,
-        base64,
-      });
-      setFileError("");
-    } catch {
-      setAttach(null);
-      setFileError("No se pudo leer el archivo. Intenta con otro.");
-    }
+    setAttaches((previous) => [...previous, ...accepted]);
+    setFileError(errors.join(" "));
+    setReadingAttachments(false);
   }
 
   /** Validación espejo de las reglas del SolicitudNovedadService. */
@@ -746,15 +754,12 @@ export function RequestForm() {
         return "La duración en días debe ser un número entero positivo.";
       }
     }
-    if (attach && attach.tamanoBytes >= MAX_ATTACH_BYTES) {
-      return "El archivo supera el límite de 5 MB que acepta el servidor.";
-    }
     return "";
   }
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (submitting) return;
+    if (submitting || readingAttachments) return;
     const validation = validate();
     if (validation) {
       setFieldError(validation);
@@ -794,7 +799,7 @@ export function RequestForm() {
         aprobadorId: Number(form.aprobadorId),
         aprobadorNombre: aprobador?.nombre ?? null,
         aprobadorCargo: aprobador?.cargo ?? null,
-        documentos: attach ? [attach] : [],
+        documentos: attaches,
       };
       const response = await createSolicitud(payload);
       setCreated(response); // modal con radicado/estado reales del backend
@@ -1056,17 +1061,23 @@ export function RequestForm() {
           )}
           <label className="pn-upload">
             <Icon name="cloud_upload" size={28} />
-            <strong>
-              {attach?.nombreArchivo || "Adjunta un soporte si lo necesitas"}
-            </strong>
-            <span>PDF o imagen · Máximo 5 MB</span>
+            <strong>{readingAttachments ? "Preparando soportes…" : "Adjunta soportes si los necesitas"}</strong>
+            <span>PDF o imagen · Menos de 5 MB por archivo</span>
             <input
-              aria-label="Adjuntar soporte"
+              aria-label="Adjuntar soportes"
               type="file"
               accept=".pdf,image/*"
-              onChange={handleFile}
+              multiple
+              disabled={readingAttachments || submitting}
+              onChange={handleFiles}
             />
           </label>
+          <FormAttachmentList
+            attaches={attaches}
+            onRemove={(index) => {
+              if (!submitting) setAttaches((previous) => previous.filter((_, i) => i !== index));
+            }}
+          />
           {fileError && (
             <p role="alert" className="pn-info">
               {fileError}
@@ -1087,7 +1098,7 @@ export function RequestForm() {
             <Button
               type="submit"
               disabled={
-                submitting ||
+                submitting || readingAttachments ||
                 me.state.status !== "success" ||
                 empresas.state.status !== "success" ||
                 !form.empresaId ||
@@ -1126,6 +1137,7 @@ export function RequestForm() {
             </p>
           )}
           <p>Recibirás una notificación cuando tu solicitud sea revisada.</p>
+          <FormAsideAttachmentSummary attaches={attaches} />
         </aside>
       </div>
       {created && (
@@ -1213,15 +1225,3 @@ const TIPOS_CON_DIAS: ReadonlyArray<TipoSolicitudNovedad> = [
   "LICENCIA",
   "INCAPACIDAD",
 ];
-
-/** Convierte un File a base64 puro (sin prefijo data:) en chunks de 8k. */
-async function fileToBase64(file: File): Promise<string> {
-  const buffer = await file.arrayBuffer();
-  const bytes = new Uint8Array(buffer);
-  let binary = "";
-  const chunk = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunk) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
-  }
-  return btoa(binary);
-}

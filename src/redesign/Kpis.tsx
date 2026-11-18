@@ -1,5 +1,5 @@
 import { DetailMeta } from "./DetailSheet";
-import { useState } from "react";
+import { useState, type ChangeEvent, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import {
   Icon,
@@ -12,6 +12,7 @@ import {
   Modal,
   SectionError,
   LoadingNote,
+  date,
 } from "./shared";
 import { ProgressRing } from "./Charts";
 import {
@@ -22,12 +23,65 @@ import {
   periodLabel,
   monthLabel,
   formatMeasure,
+  toApiError,
   type MonthPeriod,
 } from "../lib/api";
 import type {
   EmployeeMonthlyAnalyticsResponse,
   IndicatorWire,
 } from "../lib/api-types";
+import {
+  createMyIndicatorComment,
+  downloadMyIndicatorEvidence,
+  submitMyIndicatorEvidence,
+  useMyIndicatorComments,
+  useMyIndicatorEvidences,
+  type EvidenceStatus,
+  type SelfIndicatorEvidenceCapacity,
+} from "../lib/self-indicators";
+
+const MAX_EVIDENCE_BYTES = 50 * 1024 * 1024;
+const EVIDENCE_ACCEPT =
+  ".pdf,.doc,.docx,.xls,.xlsx,.xlsm,.csv,.txt,.jpg,.jpeg,.png,.gif,.zip,.rar";
+
+function saveBlob(blob: Blob, fileName: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+function formatMoment(value: string | null): string {
+  if (!value) return "Sin dato";
+  const [day, time] = value.split(/[ T]/);
+  const datePart = day && /^\d{4}-\d{2}-\d{2}$/.test(day) ? date(day) : "Sin dato";
+  const hhmm = time ? time.slice(0, 5) : "";
+  return hhmm ? `${datePart} · ${hhmm}` : datePart;
+}
+
+function evidenceStatusLabel(status: EvidenceStatus | string | null): string {
+  if (status === "APPROVED") return "Aprobada";
+  if (status === "REJECTED") return "Rechazada";
+  return "Pendiente";
+}
+
+function isEvaluatorRole(role: string | null): boolean {
+  const normalized = (role ?? "").toLowerCase();
+  return (
+    normalized === "admin" ||
+    normalized === "super_admin" ||
+    normalized === "supervisor"
+  );
+}
+
+function capacitySummary(capacity: SelfIndicatorEvidenceCapacity): string {
+  if (capacity.unlimited) {
+    return `${capacity.count} registrada(s) · Sin límite`;
+  }
+  return `${capacity.count} de ${capacity.limit} usada(s) · ${capacity.available ?? 0} disponible(s)`;
+}
 
 /**
  * M3 — KPIs / Metas con datos reales de kpis-ms.
@@ -470,9 +524,425 @@ export function Kpis({ notify }: { notify: (v: string) => void }) {
               {period ? `Período: ${periodLabel(period)} · ` : ""}Datos del
               servidor
             </span>
+            {selected.id != null && (
+              <IndicatorDetailWorkspace
+                key={selected.id}
+                indicatorId={selected.id}
+                notify={notify}
+              />
+            )}
           </div>
         </Modal>
       )}
+    </>
+  );
+}
+
+function IndicatorDetailWorkspace({
+  indicatorId,
+  notify,
+}: {
+  indicatorId: number;
+  notify: (v: string) => void;
+}) {
+  const evidences = useMyIndicatorEvidences(indicatorId);
+  const comments = useMyIndicatorComments(indicatorId);
+
+  const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
+  const [evidenceFileKey, setEvidenceFileKey] = useState(0);
+  const [description, setDescription] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [evidenceError, setEvidenceError] = useState("");
+  const [submittingEvidence, setSubmittingEvidence] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const [downloadError, setDownloadError] = useState("");
+
+  const [commentText, setCommentText] = useState("");
+  const [commentError, setCommentError] = useState("");
+  const [submittingComment, setSubmittingComment] = useState(false);
+
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const chosen = event.target.files?.[0] ?? null;
+    if (!chosen) {
+      setEvidenceFile(null);
+      return;
+    }
+    if (chosen.size === 0) {
+      event.target.value = "";
+      setEvidenceFile(null);
+      setEvidenceError("El archivo seleccionado está vacío.");
+      return;
+    }
+    if (chosen.size > MAX_EVIDENCE_BYTES) {
+      event.target.value = "";
+      setEvidenceFile(null);
+      setEvidenceError("El archivo supera el límite máximo permitido de 50 MB.");
+      return;
+    }
+    setEvidenceError("");
+    setEvidenceFile(chosen);
+  };
+
+  const handleEvidenceSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (submittingEvidence) return;
+    if (!evidenceFile) {
+      setEvidenceError("Debes adjuntar un archivo para registrar la evidencia.");
+      return;
+    }
+    if (description.trim().length > 255) {
+      setEvidenceError("La descripción admite máximo 255 caracteres.");
+      return;
+    }
+    if (startDate && endDate && startDate > endDate) {
+      setEvidenceError(
+        "La fecha de inicio no puede ser posterior a la fecha de finalización.",
+      );
+      return;
+    }
+    setEvidenceError("");
+    setSubmittingEvidence(true);
+    try {
+      await submitMyIndicatorEvidence(indicatorId, {
+        file: evidenceFile,
+        description: description.trim() || undefined,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+      });
+      setEvidenceFile(null);
+      setEvidenceFileKey((k) => k + 1);
+      setDescription("");
+      setStartDate("");
+      setEndDate("");
+      evidences.reload();
+      notify("Evidencia registrada correctamente.");
+    } catch (error) {
+      setEvidenceError(toApiError(error).message);
+    } finally {
+      setSubmittingEvidence(false);
+    }
+  };
+
+  const handleDownload = async (evidenceId: number, fileName: string | null) => {
+    if (downloadingId != null) return;
+    setDownloadError("");
+    setDownloadingId(evidenceId);
+    try {
+      const blob = await downloadMyIndicatorEvidence(indicatorId, evidenceId);
+      saveBlob(blob, fileName || `evidencia-${evidenceId}`);
+      notify("Evidencia descargada.");
+    } catch (error) {
+      setDownloadError(toApiError(error).message);
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  const handleCommentSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (submittingComment) return;
+    const trimmed = commentText.trim();
+    if (!trimmed) {
+      setCommentError("Escribe un comentario antes de enviar.");
+      return;
+    }
+    if (trimmed.length > 1000) {
+      setCommentError("El comentario admite máximo 1000 caracteres.");
+      return;
+    }
+    setCommentError("");
+    setSubmittingComment(true);
+    try {
+      await createMyIndicatorComment(indicatorId, trimmed);
+      setCommentText("");
+      comments.reload();
+      notify("Comentario publicado.");
+    } catch (error) {
+      setCommentError(toApiError(error).message);
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
+  const evidencesData = evidences.state.data;
+  const capacity = evidencesData?.capacity ?? null;
+  const evidenceItems = evidencesData?.evidences ?? [];
+  const commentItems = comments.state.data ?? [];
+
+  return (
+    <>
+      <section aria-label="Evidencias del indicador" className="mt-6">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <h3 className="!m-0">Evidencias</h3>
+          {capacity && (
+            <Badge>{capacitySummary(capacity)}</Badge>
+          )}
+        </div>
+
+        {capacity?.registrationType?.toLowerCase() === "automatico" &&
+          capacity.startCalificationDate &&
+          capacity.endCalificationDate && (
+            <p className="pn-info" role="status">
+              <Icon name="schedule" size={16} />
+              <span>
+                Ventana de registro: {date(capacity.startCalificationDate)} —{" "}
+                {date(capacity.endCalificationDate)}
+              </span>
+            </p>
+          )}
+
+        {evidences.state.status === "loading" && !evidencesData ? (
+          <LoadingNote label="Cargando evidencias…" />
+        ) : evidences.state.status === "error" && !evidencesData ? (
+          <SectionError
+            error={evidences.state.error ?? "No se pudieron cargar las evidencias."}
+            restricted={evidences.state.errorStatus === 403}
+            onRetry={evidences.reload}
+          />
+        ) : (
+          <>
+            {downloadError && (
+              <p className="pn-info" role="alert">
+                <Icon name="error_outline" size={16} />
+                <span>{downloadError}</span>
+              </p>
+            )}
+
+            {evidenceItems.length === 0 ? (
+              <p className="pn-info" role="status">
+                <Icon name="folder_open" size={16} />
+                <span>Aún no has registrado evidencias para este indicador.</span>
+              </p>
+            ) : (
+              <div className="flex flex-col gap-3 mb-4">
+                {evidenceItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="pn-panel p-4 flex flex-col gap-2"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <strong className="block text-sm break-all">
+                          {item.fileName ?? `Evidencia #${item.id}`}
+                        </strong>
+                        {item.submittedAt && (
+                          <span className="small-muted block mt-0.5">
+                            Enviada: {formatMoment(item.submittedAt)}
+                          </span>
+                        )}
+                      </div>
+                      <Badge>{evidenceStatusLabel(item.status)}</Badge>
+                    </div>
+
+                    {item.description && (
+                      <p className="!my-1 text-xs">{item.description}</p>
+                    )}
+
+                    {(item.startDate || item.endDate) && (
+                      <span className="small-muted block">
+                        Rango:{" "}
+                        {item.startDate ? date(item.startDate) : "Sin inicio"} —{" "}
+                        {item.endDate ? date(item.endDate) : "Sin fin"}
+                      </span>
+                    )}
+
+                    {item.hasFile && (
+                      <div className="flex justify-end pt-1">
+                        <Button
+                          secondary
+                          disabled={downloadingId === item.id}
+                          onClick={() =>
+                            void handleDownload(item.id, item.fileName)
+                          }
+                        >
+                          <Icon name="download" size={16} />
+                          {downloadingId === item.id
+                            ? "Descargando…"
+                            : "Descargar"}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {capacity && !capacity.canSubmit ? (
+              <p className="pn-info" role="status">
+                <Icon name="block" size={16} />
+                <span>
+                  {capacity.blockedReason ??
+                    "No es posible registrar más evidencias para este indicador."}
+                </span>
+              </p>
+            ) : (
+              <form
+                className="pn-form flex flex-col gap-3"
+                onSubmit={(e) => void handleEvidenceSubmit(e)}
+                noValidate
+              >
+                <label className="pn-upload">
+                  <Icon name="upload_file" size={22} />
+                  <strong>
+                    {evidenceFile
+                      ? evidenceFile.name
+                      : "Archivo de evidencia"}
+                  </strong>
+                  <span>
+                    {evidenceFile
+                      ? `${(evidenceFile.size / 1024).toFixed(1)} KB`
+                      : "PDF, Word, Excel, imagen o ZIP (máx. 50 MB)"}
+                  </span>
+                  <input
+                    key={evidenceFileKey}
+                    type="file"
+                    aria-label="Archivo de evidencia"
+                    accept={EVIDENCE_ACCEPT}
+                    onChange={handleFileChange}
+                    disabled={submittingEvidence}
+                  />
+                </label>
+
+                <label>
+                  Descripción de la evidencia (opcional)
+                  <textarea
+                    rows={2}
+                    maxLength={255}
+                    placeholder="Describe brevemente el soporte adjunto..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    disabled={submittingEvidence}
+                  />
+                </label>
+
+                <div className="form-two">
+                  <label>
+                    Fecha inicio
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      disabled={submittingEvidence}
+                    />
+                  </label>
+                  <label>
+                    Fecha fin
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      disabled={submittingEvidence}
+                    />
+                  </label>
+                </div>
+
+                {evidenceError && (
+                  <p className="pn-info" role="alert">
+                    <Icon name="error_outline" size={16} />
+                    <span>{evidenceError}</span>
+                  </p>
+                )}
+
+                <div className="flex justify-end">
+                  <Button
+                    type="submit"
+                    disabled={!evidenceFile || submittingEvidence}
+                  >
+                    <Icon name="cloud_upload" size={17} />
+                    {submittingEvidence
+                      ? "Subiendo evidencia…"
+                      : "Subir evidencia"}
+                  </Button>
+                </div>
+              </form>
+            )}
+          </>
+        )}
+      </section>
+
+      <section aria-label="Comentarios del indicador" className="mt-6">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <h3 className="!m-0">Comentarios</h3>
+          <Badge>{`${commentItems.length} comentario${commentItems.length === 1 ? "" : "s"}`}</Badge>
+        </div>
+
+        <form
+          className="pn-form flex flex-col gap-3 mb-4"
+          onSubmit={(e) => void handleCommentSubmit(e)}
+          noValidate
+        >
+          <label>
+            Nuevo comentario
+            <textarea
+              rows={2}
+              maxLength={1000}
+              placeholder="Escribe un comentario..."
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              disabled={submittingComment}
+            />
+          </label>
+
+          {commentError && (
+            <p className="pn-info" role="alert">
+              <Icon name="error_outline" size={16} />
+              <span>{commentError}</span>
+            </p>
+          )}
+
+          <div className="flex justify-end">
+            <Button
+              type="submit"
+              disabled={!commentText.trim() || submittingComment}
+            >
+              <Icon name="send" size={16} />
+              {submittingComment ? "Enviando…" : "Enviar comentario"}
+            </Button>
+          </div>
+        </form>
+
+        {comments.state.status === "loading" && !comments.state.data ? (
+          <LoadingNote label="Cargando comentarios…" />
+        ) : comments.state.status === "error" && !comments.state.data ? (
+          <SectionError
+            error={comments.state.error ?? "No se pudieron cargar los comentarios."}
+            restricted={comments.state.errorStatus === 403}
+            onRetry={comments.reload}
+          />
+        ) : commentItems.length === 0 ? (
+          <p className="pn-info" role="status">
+            <Icon name="chat_bubble_outline" size={16} />
+            <span>Sin comentarios aún. Sé el primero en comentar.</span>
+          </p>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {commentItems.map((comment) => (
+              <article
+                key={comment.id}
+                className="pn-panel p-4 flex flex-col gap-1.5"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <strong className="text-sm">
+                    {comment.authorName ?? "Usuario"}
+                  </strong>
+                  <Badge>
+                    {isEvaluatorRole(comment.authorRole)
+                      ? "Evaluador"
+                      : "Colaborador"}
+                  </Badge>
+                </div>
+                <p className="!my-1 whitespace-pre-wrap break-words">
+                  {comment.commentText}
+                </p>
+                <span className="small-muted">
+                  {formatMoment(comment.createdAt)}
+                </span>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
     </>
   );
 }

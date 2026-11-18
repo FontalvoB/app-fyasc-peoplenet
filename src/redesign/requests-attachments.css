@@ -1,0 +1,170 @@
+/* Estilos específicos para soportes y adjuntos de solicitudes de novedades */
+.pn-attach-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+  width: 100%;
+}
+
+.pn-attach-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--pn-surface, #ffffff);
+  border: 1px solid var(--pn-line, #e2e8f0);
+  border-radius: var(--pn-radius-sm, 12px);
+  color: var(--pn-navy, #0f172a);
+  transition: border-color var(--pn-duration, 200ms);
+}
+
+.pn-attach-item-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.pn-attach-item-info .file-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--pn-action, #0284c7) 10%, transparent);
+  color: var(--pn-action, #0284c7);
+  flex-shrink: 0;
+}
+
+.pn-attach-item-texts {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pn-attach-item-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pn-navy, #0f172a);
+  word-break: break-all;
+}
+
+.pn-attach-item-size {
+  font-size: 11px;
+  color: var(--pn-muted, #64748b);
+}
+
+.pn-attach-remove-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--pn-muted, #64748b);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all var(--pn-duration, 200ms);
+}
+
+.pn-attach-remove-btn:hover {
+  background: color-mix(in srgb, #ef4444 12%, transparent);
+  color: #ef4444;
+}
+
+/* Soportes en el detalle modal */
+.pn-detail-attachments {
+  margin-top: 20px;
+  width: 100%;
+}
+
+.pn-detail-attach-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.pn-detail-attach-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--pn-surface, #ffffff);
+  border: 1px solid var(--pn-line, #e2e8f0);
+  border-radius: var(--pn-radius-sm, 12px);
+  color: var(--pn-navy, #0f172a);
+}
+
+.pn-detail-attach-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1 1 200px;
+}
+
+.pn-detail-attach-info .file-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--pn-action, #0284c7) 10%, transparent);
+  color: var(--pn-action, #0284c7);
+  flex-shrink: 0;
+}
+
+.pn-detail-attach-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pn-detail-attach-text strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pn-navy, #0f172a);
+  word-break: break-all;
+}
+
+.pn-detail-attach-text small {
+  font-size: 11px;
+  color: var(--pn-muted, #64748b);
+}
+
+.pn-detail-attach-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pn-detail-attach-actions .pn-button {
+  min-height: 40px;
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+@media (max-width: 480px) {
+  .pn-detail-attach-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .pn-detail-attach-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .pn-detail-attach-actions .pn-button {
+    flex: 1;
+  }
+}
