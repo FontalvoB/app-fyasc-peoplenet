@@ -100,8 +100,11 @@ export function Home() {
   const user = session?.user ?? null;
   const employeeId = sessionEmployeeId();
   const userId = user?.userId ?? null;
-  const name = displayName(user) || "usuario";
-  const greeting = greetingWord(name) || "usuario";
+  // El saludo usa SIEMPRE el nombre del colaborador (primer nombre), no el
+  // username ni el cargo. Si no hay colaborador vinculado, saluda sin nombre.
+  const employeeName = user?.employee?.fullName?.trim() || "";
+  const greeting = employeeName ? greetingWord(employeeName) : "";
+  const name = employeeName || displayName(user) || "usuario";
   const initials = initialsOf(name) || "PN";
 
   // Resumen personal (requiere kpis.dashboard; el fixture E2E recibe 403).
@@ -181,10 +184,7 @@ export function Home() {
         <div>
           <span>{todayLabel()}</span>
           <h1>
-            Hola, {greeting}{" "}
-            <span className="greeting-sun" aria-hidden="true">
-              ✦
-            </span>
+            Bienvenid@{greeting ? `, ${greeting}` : ""}{" "}
           </h1>
           <p>Hoy es un buen día para crecer.</p>
         </div>
@@ -200,7 +200,11 @@ export function Home() {
       <div className="vivid-desktop-heading">
         <PageHero
           eyebrow={todayLabel()}
-          title={`Hola, ${greeting}. Qué bueno tenerte aquí.`}
+          title={
+            greeting
+              ? `Bienvenid@, ${greeting}. Qué bueno tenerte aquí.`
+              : "Bienvenid@. Qué bueno tenerte aquí."
+          }
           description="Un nuevo día para conectar, avanzar y hacer que las cosas pasen."
           action={
             <Link className="pn-button secondary" to="/dashboard/requests/new">

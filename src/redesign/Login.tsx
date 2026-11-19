@@ -4,7 +4,13 @@ import { useHistory } from "react-router-dom";
 import { Icon } from "./shared";
 import { PasswordRecovery } from "./PasswordRecovery";
 import { TemporaryPasswordChange } from "./TemporaryPasswordChange";
-import { login, toApiError, type TemporaryPasswordSession } from "../lib/api";
+import {
+  login,
+  refreshSessionIdentity,
+  toApiError,
+  type TemporaryPasswordSession,
+} from "../lib/api";
+import { BUILD_INFO } from "../lib/config";
 import logo from "./assets/peoplenet-mark.svg";
 import "./login.css";
 
@@ -105,6 +111,10 @@ export function Login() {
         setTemporarySession({ userId: response.userId, token: response.token });
         return;
       }
+      // Enriquecer la sesión con /auth/me (employee.fullName, permisos) antes
+      // de entrar al home. Si falla, la sesión del login sigue válida: no se
+      // bloquea el ingreso ni se muestra el username como nombre.
+      await refreshSessionIdentity();
       history.push("/dashboard");
     } catch (err) {
       const apiError = toApiError(err);
@@ -284,6 +294,7 @@ export function Login() {
           </form>
           {notice && <p className="entry-blocked" role="status">{notice}</p>}
           <p className="entry-community"><Icon name="diversity_3" size={28} /><span>Juntos construimos un mejor lugar</span></p>
+          <p className="entry-build">PeopleNet · v{BUILD_INFO.version}</p>
         </motion.section>
       </div>
       {help && (

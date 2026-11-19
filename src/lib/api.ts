@@ -402,6 +402,26 @@ export async function changeTemporaryPassword(
 }
 
 /**
+ * Enriquece una sesión recién creada con /auth/me (employee.fullName,
+ * permisos) sin cerrar sesión si el endpoint falla. Se usa justo después del
+ * login para que el saludo del home use el nombre del colaborador, no el
+ * username. Un fallo transitorio deja la sesión del login intacta.
+ */
+export async function refreshSessionIdentity(): Promise<LoginResponse | null> {
+  const session = readSession();
+  if (!session) return null;
+  try {
+    const me = await request<LoginResponse>("/auth/me", {
+      skipAuthRedirect: true,
+    });
+    saveSession(session.token, me);
+    return me;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * GET /api/auth/me para revalidar la sesión almacenada. /me no devuelve un
  * token nuevo: se conserva SIEMPRE el token del login (no reemplazarlo con
  * null/undefined). En 401 el cliente ya limpia y redirige; otros fallos

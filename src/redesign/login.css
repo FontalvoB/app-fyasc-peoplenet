@@ -536,6 +536,7 @@ body:has(.premium-login) {
 .entry-community { display: flex; align-items: center; justify-content: center; gap: 7px; margin: 22px 0 0; color: #395581; font-size: 10px; white-space: nowrap; }
 .entry-community > .material-symbols-outlined { color: #075ac6; flex-shrink: 0; }
 .entry-community::before, .entry-community::after { content: ""; height: 1px; flex: 1; background: #b7c4d9; }
+.entry-build { margin: 8px 0 0; text-align: center; color: #5c7493; font-size: 10px; font-weight: 600; letter-spacing: 0.03em; }
 .entry-wave { position: absolute; z-index: 2; left: 0; bottom: 0; width: 100%; height: 50px; }
 .entry-wave-base { fill: #0057ba; }
 .entry-wave-accent { stroke-width: 12px; }

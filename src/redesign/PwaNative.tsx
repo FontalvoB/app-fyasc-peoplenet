@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { DetailSheet } from "./DetailSheet";
 import { Button, Icon } from "./shared";
-import { APP_ENV } from "../lib/config";
+import { BUILD_INFO } from "../lib/config";
 import {
   applyPwaUpdate,
   canOfferInstallNow,
@@ -412,7 +412,7 @@ export function PwaPreferences() {
             <strong>Versión de la app</strong>
             <p>
               {pwaBuild
-                ? `Build web (${APP_ENV}) · las actualizaciones llegan solas.`
+                ? `v${BUILD_INFO.version} · Build web (${BUILD_INFO.env}) · actualizaciones automáticas.`
                 : "Disponible en la build PWA instalable."}
             </p>
           </div>

@@ -17,6 +17,10 @@ export default defineConfig(({ mode }) => {
     process.env.VITE_API_BASE_URL = '/api'
   }
   return {
+  // Versión visible solo en el pie del login y en los ajustes de la app.
+  define: {
+    __APP_VERSION__: JSON.stringify(process.env.npm_package_version ?? '1.0.0'),
+  },
   plugins: [
     react(),
     tailwindcss(),

@@ -49,6 +49,7 @@ if (IS_NATIVE && API_BASE_URL.startsWith("/")) {
 /** Identificación de build para soporte/diagnóstico (opcional en pantalla). */
 export const BUILD_INFO = {
   env: APP_ENV,
+  version: __APP_VERSION__,
   native: IS_NATIVE,
   apiBaseUrl: API_BASE_URL,
 } as const;
