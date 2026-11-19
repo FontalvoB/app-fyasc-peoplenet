@@ -31,7 +31,9 @@ export default defineConfig(({ mode }) => {
      */
     VitePWA({
       injectRegister: false,
-      registerType: 'autoUpdate',
+      // 'prompt': la app avisa cuando hay un despliegue nuevo y el usuario
+      // decide cuándo aplicar la actualización (no se recarga a media tarea).
+      registerType: 'prompt',
       // public/ completo ya cae en precache vía globPatterns (íconos, imágenes,
       // fuentes de texto); no se necesita includeAssets extra.
       manifest: {
@@ -49,6 +51,40 @@ export default defineConfig(({ mode }) => {
         background_color: '#0b3e8f',
         theme_color: '#045C94',
         categories: ['business', 'productivity'],
+        // Al abrir desde el icono instalado, reutiliza la ventana existente en
+        // vez de crear otra pestaña (comportamiento de app nativa).
+        launch_handler: { client_mode: 'navigate-existing' },
+        // Atajos al mantener pulsado el icono de la app (Android/escritorio).
+        shortcuts: [
+          {
+            name: 'Nueva solicitud',
+            short_name: 'Solicitud',
+            description: 'Radicar una solicitud de novedad o permiso',
+            url: '/dashboard/requests/new',
+            icons: [{ src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' }],
+          },
+          {
+            name: 'Mis metas',
+            short_name: 'Metas',
+            description: 'Consultar tus KPIs y avances del período',
+            url: '/dashboard/kpis',
+            icons: [{ src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' }],
+          },
+          {
+            name: 'Biblioteca',
+            short_name: 'Documentos',
+            description: 'Leer los documentos de tu organización',
+            url: '/dashboard/documents',
+            icons: [{ src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' }],
+          },
+          {
+            name: 'Mi perfil',
+            short_name: 'Perfil',
+            description: 'Ver tu información y preferencias',
+            url: '/dashboard/profile',
+            icons: [{ src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' }],
+          },
+        ],
         icons: [
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
           { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
@@ -67,8 +103,12 @@ export default defineConfig(({ mode }) => {
         ],
       },
       workbox: {
-        skipWaiting: true,
+        // El SW nuevo espera a que el usuario confirme la actualización.
+        skipWaiting: false,
         clientsClaim: true,
+        cleanupOutdatedCaches: true,
+        // Handler de notificationclick / push compartido (public/sw-extra.js).
+        importScripts: ['sw-extra.js'],
         // Shell + assets del build y de public/ (íconos, imágenes y las dos
         // fuentes de texto). MaterialSymbols queda fuera por tamaño (10 MB).
         globPatterns: ['**/*.{js,css,html,svg,png,jpg,ico}', 'fonts/{DMSans,Manrope}.ttf'],
@@ -110,6 +150,21 @@ export default defineConfig(({ mode }) => {
         configure(proxy) {
           // Browser calls are same-origin to Vite. Do not forward its dev-only
           // Origin to Spring's production/native CORS allowlist.
+          proxy.on('proxyReq', (request) => request.removeHeader('origin'))
+        },
+      },
+    },
+  },
+  // `vite preview` no hereda el proxy de `server`: se declara aparte para
+  // probar la build PWA real (SW + actualizaciones) contra un backend local o
+  // remoto sin tocar el bundle de producción.
+  preview: {
+    proxy: {
+      '/api': {
+        target: process.env.PREVIEW_API_TARGET ?? 'http://localhost:8080',
+        changeOrigin: true,
+        secure: true,
+        configure(proxy) {
           proxy.on('proxyReq', (request) => request.removeHeader('origin'))
         },
       },

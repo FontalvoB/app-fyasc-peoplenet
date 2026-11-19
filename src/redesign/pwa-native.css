@@ -1,0 +1,325 @@
+/*
+ * Capa visual de experiencia nativa PWA.
+ * Solo añade superficies y estados nuevos; no reemplaza estilos del shell.
+ */
+
+/* El modal nativo ya inerta el fondo. Contener el scroll aquí evita el
+ * "scroll chaining" sin tocar body/html (Modern Web Guidance: dialog). */
+.pn-detail-sheet:modal {
+  overscroll-behavior: contain;
+}
+.pn-detail-sheet::backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+.pwa-offline-pill {
+  position: fixed;
+  z-index: 320;
+  top: calc(env(safe-area-inset-top) + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100% - 32px);
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--pn-navy);
+  color: var(--pn-surface);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: var(--pn-shadow-lg);
+  pointer-events: none;
+  animation: pwa-slide-down 220ms var(--pn-ease) both;
+}
+
+.pwa-toast {
+  position: fixed;
+  z-index: 310;
+  left: 16px;
+  right: 16px;
+  bottom: calc(96px + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--pn-navy);
+  color: var(--pn-surface);
+  box-shadow: var(--pn-shadow-lg);
+  font-size: 13px;
+  line-height: 1.4;
+  animation: pwa-slide-up 220ms var(--pn-ease) both;
+}
+
+.pwa-toast > span {
+  flex: 1;
+  min-width: 0;
+}
+
+.pwa-toast button {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--pn-surface) 14%, transparent);
+  color: inherit;
+  cursor: pointer;
+}
+
+.pwa-sheet-hero {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.pwa-sheet-hero-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: var(--pn-blue-soft);
+  color: var(--pn-navy);
+}
+
+.pwa-sheet-hero strong {
+  display: block;
+  color: var(--pn-navy);
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.pwa-sheet-hero p {
+  margin: 4px 0 0;
+  color: var(--pn-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.pwa-check-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pwa-check-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--pn-navy);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.pwa-check-list .material-symbols-outlined {
+  flex: none;
+  color: var(--pn-blue);
+  font-size: 18px;
+}
+
+.pwa-sheet-note {
+  margin: 18px 0 0;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--pn-blue-soft);
+  color: var(--pn-navy);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.pwa-install-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: pwa-step;
+}
+
+.pwa-install-steps li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--pn-navy);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.pwa-install-steps li > span {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--pn-navy);
+  color: var(--pn-surface);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.pwa-pref-list {
+  margin-top: 8px;
+}
+
+.pwa-pref-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--pn-line);
+}
+
+.pwa-pref-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.pwa-pref-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--pn-blue-soft);
+  color: var(--pn-navy);
+}
+
+.pwa-pref-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.pwa-pref-copy strong {
+  display: block;
+  color: var(--pn-navy);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.pwa-pref-copy p {
+  margin: 2px 0 0;
+  color: var(--pn-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.pwa-pref-action {
+  flex: none;
+}
+
+.pwa-pref-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: var(--pn-blue-soft);
+  color: var(--pn-navy);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.pwa-pref-status.ok {
+  background: color-mix(in srgb, #1c8c5a 14%, transparent);
+  color: #146b45;
+}
+
+.pwa-pref-status.warn {
+  background: color-mix(in srgb, #b7791f 14%, transparent);
+  color: #8a5a10;
+}
+
+.pwa-pref-status.bad {
+  background: color-mix(in srgb, #b42318 12%, transparent);
+  color: #8f1d14;
+}
+
+.pwa-pref-notice {
+  margin-top: 14px;
+}
+
+.pwa-optin {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pwa-optin > div {
+  flex: 1;
+  min-width: 180px;
+}
+
+.pwa-optin strong {
+  display: block;
+  color: var(--pn-navy);
+  font-size: 13px;
+}
+
+.pwa-optin p {
+  margin: 2px 0 0;
+  color: var(--pn-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.pwa-optin > .pn-button {
+  align-self: center;
+}
+
+@keyframes pwa-slide-down {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@keyframes pwa-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 700px) {
+  .pwa-pref-row {
+    align-items: flex-start;
+  }
+
+  .pwa-pref-action {
+    margin-left: auto;
+  }
+
+  .pwa-optin > .pn-button {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pwa-offline-pill,
+  .pwa-toast {
+    animation: none;
+  }
+}

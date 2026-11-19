@@ -25,9 +25,10 @@ export function DetailSheet({
   useEffect(() => {
     const dialog = ref.current;
     const previous = document.activeElement as HTMLElement | null;
-    const overflow = document.body.style.overflow;
+    // El scroll del fondo se contiene con `overscroll-behavior` en CSS (ver
+    // pwa-native.css): no se muta `body.overflow` para no perder el scrollbar
+    // ni romper elementos sticky del shell.
     dialog?.showModal();
-    document.body.style.overflow = "hidden";
     const viewport = window.visualViewport;
     const resize = () => {
       dialog?.style.setProperty(
@@ -47,7 +48,6 @@ export function DetailSheet({
       viewport?.removeEventListener("resize", resize);
       viewport?.removeEventListener("scroll", resize);
       dialog?.close();
-      document.body.style.overflow = overflow;
       previous?.focus({ preventScroll: true });
     };
   }, [controls]);
@@ -61,8 +61,6 @@ export function DetailSheet({
     <motion.dialog
       ref={ref}
       className="pn-modal pn-detail-sheet"
-      role="dialog"
-      aria-modal="true"
       aria-labelledby={titleId}
       initial={{ opacity: 0, y: reduced ? 0 : 24, scale: reduced ? 1 : 0.98 }}
       animate={controls}

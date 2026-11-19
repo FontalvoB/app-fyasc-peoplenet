@@ -20,6 +20,7 @@ import {
   useApi,
   type SpringPage,
 } from "../lib/api";
+import { usePwaActivityWatch } from "../lib/pwa-activity";
 import { Home } from "./Home";
 import { Login } from "./Login";
 import { Kpis } from "./Kpis";
@@ -57,6 +58,9 @@ export default function Workspace() {
     email: "alvaro.mendez@peoplenet.com",
     phone: "+57 300 123 4567",
   });
+  // Solo corre si el usuario activó notificaciones; reutiliza el feed que ya
+  // existe (sin endpoints nuevos ni conexiones adicionales).
+  usePwaActivityWatch(isAuthenticated());
   useEffect(() => {
     if (!menu) return;
     const previous = document.activeElement as HTMLElement | null;

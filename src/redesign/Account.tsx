@@ -54,6 +54,8 @@ import {
   type SelfCertificate,
 } from "../lib/self-certificates";
 import { ProfileActions, ProfilePhoto } from "./ProfileActions";
+import { NotificationOptIn, PwaPreferences } from "./PwaNative";
+import { clearPwaBadge } from "../lib/pwa";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Ayudantes de presentación (locales; los datos siempre vienen de la API)
@@ -375,6 +377,12 @@ export function Notifications(_props: {
   const activities = useDashboardActivities();
   const feed = activities.state.data ?? [];
 
+  // Abrir la bandeja equivale a revisar las novedades: se limpia el badge
+  // nativo del icono de la app.
+  useEffect(() => {
+    void clearPwaBadge();
+  }, []);
+
   return (
     <>
       <PageHero
@@ -391,6 +399,7 @@ export function Notifications(_props: {
           </span>
         }
       />
+      <NotificationOptIn />
       <div className="pn-info">
         <Icon name="info" size={18} /> Este feed es informativo: el servidor no
         registra lecturas por evento, así que no hay marcadores de "no leído".
@@ -654,6 +663,9 @@ export function Profile(_props: {
               )}
             </>
           )}
+        </div>
+        <div style={{ gridColumn: "1 / -1" }}>
+          <PwaPreferences />
         </div>
         <div style={{ gridColumn: "1 / -1" }}>
           <ProfileActions />

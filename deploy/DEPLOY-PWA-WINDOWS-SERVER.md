@@ -162,9 +162,20 @@ Con el diseño same-origin, el navegador **nunca** envía preflight al WAF:
 
 ## 10. Publicar actualizaciones
 
-`npm run build:pwa` + copiar `dist/` al server (script del paso 5). Los usuarios
-con la app abierta reciben el nuevo SW en su próxima visita (`autoUpdate`: se
-activa solo, sin banners). No hay "versiones de tienda": publicar = copiar.
+`npm run build:pwa` + copiar `dist/` al server (script del paso 5). No hay
+"versiones de tienda": publicar = copiar.
+
+El SW nuevo queda en espera (`skipWaiting: false`). La app consulta al abrir,
+al volver a primer plano, al recuperar red y cada 30 minutos. Si hay un
+despliegue nuevo, muestra el modal nativo:
+
+- **Actualizar ahora**: activa el SW nuevo y recarga una sola vez.
+- **Más tarde**: sigue usando la versión actual; se le vuelve a ofrecer en la
+  próxima apertura.
+
+El usuario **no** necesita desinstalar ni volver a instalar la PWA. Verificar
+que `sw.js` y `sw-extra.js` salgan con `Cache-Control: no-cache` (ya están en
+`web.config`); si un proxy/CDN los cachea, el aviso no llegará a tiempo.
 
 ## 11. Rollback
 
@@ -202,5 +213,5 @@ Solo si no pueden instalar ARR: build con `VITE_API_BASE_URL=https://peoplenet.i
 | 404.19/404.3 en `.webmanifest` | MIME no registrado | ya cubierto por `web.config`; verificar que esté en la carpeta publicada |
 | 502.3 en `/api/...` | ARR proxy deshabilitado o backend caído | habilitar proxy (paso 4) / revisar servicio kpis-ms en `:8080` |
 | `/dashboard/kpis` da 404 en deep link | regla SPA fallback no activa | verificar módulo URL Rewrite instalado |
-| Login OK en navegador, no en app instalada | SW cache viejo tras cambiar el backend de dominio | DevTools → Application → Clear storage; el autoUpdate lo resuelve solo en visitas futuras |
+| Login OK en navegador, no en app instalada | SW cache viejo tras cambiar el backend de dominio | DevTools → Application → Clear storage; el modal de actualización lo resuelve en la próxima visita |
 | Service worker no registra | sitio servido por HTTP sin TLS | completar paso 2 (HTTPS es obligatorio) |
