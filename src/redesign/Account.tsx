@@ -495,9 +495,30 @@ export function Profile(_props: {
 
   const person = summary.state.data;
   const user = identity.state.data;
-  const fullName = person?.fullName ?? displayName(user) ?? "Sin dato";
+  // Sin colaborador asociado no hay nombre de persona que mostrar: el
+  // username (p. ej. "PEOPLESPC") es una credencial, no un nombre. Se evita
+  // presentarlo como si fuera el colaborador (FSC-2).
+  const fullName = person?.fullName ?? (employeeId == null ? "Sin dato" : displayName(user) ?? "Sin dato");
   const email = user?.email ?? "Sin dato";
   const username = user?.username ?? "Sin dato";
+  const unlinked = employeeId == null;
+  // Gerencia, área y subárea suelen repetir el mismo nombre (p. ej. PEOPLE):
+  // se deduplican para no mostrar "PEOPLE · PEOPLE · PEOPLE".
+  const orgUnitLabel = [
+    person?.management?.name,
+    person?.area?.name,
+    person?.subarea?.name,
+  ]
+    .filter((value, index, all): value is string => Boolean(value) && all.indexOf(value) === index)
+    .join(" · ");
+  // La fecha de ingreso necesita el año: el helper `date()` lo omite.
+  const hireLabel = person?.hireDate
+    ? new Date(`${person.hireDate}T12:00:00`).toLocaleDateString("es-CO", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
+    : null;
 
   return (
     <>
@@ -513,16 +534,19 @@ export function Profile(_props: {
           onRetry={identity.reload}
         />
       )}
+      {unlinked && identity.state.status !== "loading" && (
+        <div className="pn-info" role="alert">
+          <Icon name="link_off" size={18} /> Tu usuario no está vinculado a un
+          colaborador. Gestión Humana debe asociarlo para que puedas ver tu
+          información organizacional, tu foto y tu descripción personal.
+        </div>
+      )}
       {summary.state.status === "loading" && !summary.state.data && (
         <LoadingNote label="Cargando tu información…" />
       )}
-      {summary.state.status === "error" && !summary.state.data && (
+      {!unlinked && summary.state.status === "error" && !summary.state.data && (
         <SectionError
-          error={
-            employeeId == null
-              ? "Tu usuario no tiene un colaborador asociado."
-              : (summary.state.error ?? "Error inesperado.")
-          }
+          error={summary.state.error ?? "Error inesperado."}
           restricted={summary.state.errorStatus === 403}
           onRetry={summary.reload}
         />
@@ -541,15 +565,13 @@ export function Profile(_props: {
           </span>
           <span>
             <Icon name="calendar_today" size={18} />{" "}
-            {person?.hireDate
-              ? `En el equipo desde ${date(person.hireDate)}`
+            {hireLabel
+              ? `En el equipo desde ${hireLabel}`
               : "Sin fecha de ingreso"}
           </span>
           <span>
             <Icon name="apartment" size={18} />{" "}
-            {person?.management?.name ?? "Sin dato"}
-            {person?.area?.name ? ` · ${person.area.name}` : ""}
-            {person?.subarea?.name ? ` · ${person.subarea.name}` : ""}
+            {orgUnitLabel || "Sin dato"}
           </span>
           <span>
             <Icon name="supervisor_account" size={18} />{" "}
