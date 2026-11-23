@@ -7,7 +7,9 @@ import {
   Switch,
   useHistory,
   useLocation,
+  useRouteMatch,
 } from "react-router-dom";
+import { performanceEvaluationEnabled } from "../lib/feature-flags";
 import { Icon, useSaved, Avatar, Brand, Search } from "./shared";
 import { nav } from "./data";
 import {
@@ -31,6 +33,7 @@ import { Certificates, Notifications, Profile } from "./Account";
 
 export default function Workspace() {
   const location = useLocation();
+  const evaluationRoute = useRouteMatch("/dashboard/evaluations");
   const history = useHistory();
   const [menu, setMenu] = useState(false);
   const menuRef = useRef<HTMLElement>(null);
@@ -210,6 +213,8 @@ export default function Workspace() {
   // Guard de sesión (Ola 0): sin sesión autenticada no se pinta NADA privado;
   // el Redirect evita renderizar el dashboard antes de mover a /login.
   if (!isAuthenticated()) return <Redirect to="/login" />;
+  if (!performanceEvaluationEnabled && evaluationRoute)
+    return <Redirect to="/dashboard" />;
   if (!location.pathname.startsWith("/dashboard"))
     return <Redirect to="/dashboard" />;
   return (
@@ -288,7 +293,8 @@ export default function Workspace() {
             </strong>
             <p>Tu asistente está a un clic.</p>
             <span>
-              Conoce a Eva <Icon name="arrow_outward" size={17} />
+              {performanceEvaluationEnabled ? "Conoce a Eva" : "Abrir asistente"}{" "}
+              <Icon name="arrow_outward" size={17} />
             </span>
           </Link>
           <Link className="pn-settings" to="/dashboard/account">
@@ -338,10 +344,10 @@ export default function Workspace() {
           <Link
             className="vivid-header-eva"
             to="/dashboard/assistant"
-            aria-label="Abrir asistente Eva"
+            aria-label={performanceEvaluationEnabled ? "Abrir asistente Eva" : "Abrir asistente"}
           >
             <Icon name="auto_awesome" size={17} />
-            <span>Eva</span>
+            <span>{performanceEvaluationEnabled ? "Eva" : "Asistente"}</span>
           </Link>
           <div className="pn-global-search">
             <Search
@@ -483,7 +489,7 @@ export default function Workspace() {
       )}
       <Link
         to="/dashboard/assistant"
-        aria-label="Abrir asistente Eva"
+        aria-label={performanceEvaluationEnabled ? "Abrir asistente Eva" : "Abrir asistente"}
         className="pn-floating-eva"
       >
         <Icon name="auto_awesome" />

@@ -9,6 +9,7 @@ import {
   LoadingNote,
 } from "./shared";
 import { ProgressRing } from "./Charts";
+import { performanceEvaluationEnabled } from "../lib/feature-flags";
 import {
   useApi,
   useEmployeeIndicators,
@@ -122,7 +123,9 @@ export function Home() {
   );
 
   // Períodos activos de evaluación (CTA real).
-  const evalPeriods = useApi<EvalPeriod[]>("/evaluations/periods");
+  const evalPeriods = useApi<EvalPeriod[]>("/evaluations/periods", {
+    enabled: performanceEvaluationEnabled,
+  });
   const activePeriod =
     evalPeriods.state.data?.find((p) => p.isActive === true) ?? null;
 
@@ -283,7 +286,7 @@ export function Home() {
           <span className="hero-orbit orbit-one" aria-hidden="true" />
           <span className="hero-orbit orbit-two" aria-hidden="true" />
         </section>
-        {evalPeriods.state.status === "error" ? (
+        {performanceEvaluationEnabled && (evalPeriods.state.status === "error" ? (
           <section className="pn-focus">
             <div className="focus-top">
               <span>
@@ -364,7 +367,7 @@ export function Home() {
             </p>
             <span className="focus-bottom">Evaluación no disponible</span>
           </div>
-        )}
+        ))}
       </div>
       <div className="pn-stats">
         <Link to="/dashboard/kpis" className="pn-stat">
@@ -436,7 +439,7 @@ export function Home() {
                   : "Mantente al día con tu organización"}
           </span>
         </Link>
-        <Link to="/dashboard/evaluations" className="pn-stat">
+        {performanceEvaluationEnabled && <Link to="/dashboard/evaluations" className="pn-stat">
           <div>
             <span className="stat-icon stat-3">
               <Icon name="target" />
@@ -457,7 +460,7 @@ export function Home() {
                   ? `Período ${activePeriod.name ?? "sin dato"}`
                   : "Sin período activo"}
           </span>
-        </Link>
+        </Link>}
       </div>
       <div className="pn-section-heading">
         <div>
@@ -575,7 +578,7 @@ export function Home() {
             </div>
             <Icon name="calendar_month" />
           </div>
-          {activePeriod ? (
+          {performanceEvaluationEnabled && (activePeriod ? (
             (() => {
               const dateParts = shortDateParts(activePeriod.endDate);
               return (
@@ -599,7 +602,7 @@ export function Home() {
             <p className="pn-info">
               Sin períodos de evaluación activos por ahora.
             </p>
-          )}
+          ))}
           <Link className="agenda-cta" to="/dashboard/requests/new">
             <Icon name="add_circle" size={19} /> Planea algo para ti{" "}
             <Icon name="arrow_forward" size={17} />

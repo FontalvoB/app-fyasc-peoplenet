@@ -1,3 +1,5 @@
+import { performanceEvaluationEnabled } from "../lib/feature-flags";
+
 export const nav = [
   ["", "space_dashboard", "Resumen"],
   ["kpis", "monitoring", "Mis indicadores"],
@@ -6,7 +8,7 @@ export const nav = [
   ["team", "account_tree", "Nuestro equipo"],
   ["evaluations", "target", "Evaluaciones"],
   ["certificates", "workspace_premium", "Certificados"],
-];
+].filter(([path]) => performanceEvaluationEnabled || path !== "evaluations");
 
 export const people = [
   ["Álvaro Méndez", "Gerente de Operaciones", "Operaciones", "AM"],

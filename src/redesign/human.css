@@ -383,6 +383,9 @@
   .pn-home-top {
     grid-template-columns: minmax(0, 1.8fr) minmax(290px, 1fr);
   }
+  .pn-home-top > .pn-welcome:only-child {
+    grid-column: 1 / -1;
+  }
   .human-evaluation-card:hover img {
     transform: scale(1.035);
   }

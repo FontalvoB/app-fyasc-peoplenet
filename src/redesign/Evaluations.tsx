@@ -1,6 +1,7 @@
 import { useChatViewport } from "./DetailSheet";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
+import { performanceEvaluationEnabled } from "../lib/feature-flags";
 import {
   Icon,
   Badge,
@@ -769,6 +770,10 @@ function BlockedEva({ title, message }: { title: string; message: string }) {
   );
 }
 
+function isEvaluationSuggestion(text: string): boolean {
+  return /\b(?:evabot|autoevaluaci[oó]n(?:es)?|(?:evaluaci[oó]n|evaluaciones|calificaci[oó]n) del? desempe[nñ]o|per[ií]odos? de evaluaci[oó]n)\b/i.test(text);
+}
+
 /** Nanabot: asistente de consulta; SOLO ADMIN/SUPER_ADMIN (backend 403). */
 function NanabotChat() {
   const chatRef = useChatViewport();
@@ -812,7 +817,9 @@ function NanabotChat() {
         },
       });
       setMessages((prev) => [...prev, renderBotReply(response)]);
-      setSuggestions(response.suggestions ?? []);
+      setSuggestions((response.suggestions ?? []).filter(
+        (suggestion) => performanceEvaluationEnabled || !isEvaluationSuggestion(suggestion),
+      ));
     } catch (error) {
       const apiError = toApiError(error);
       setMessages((prev) => [
@@ -831,11 +838,15 @@ function NanabotChat() {
     } else if (response.source === "local") {
       text += "\n\n(Respuesta de la base de conocimiento local.)";
     }
-    if (response.links?.length) {
-      text += `\n\nMódulos relacionados: ${response.links
-        .map((l) => l.label ?? "")
-        .filter(Boolean)
-        .join(", ")}.`;
+    const linkLabels = (response.links ?? [])
+      .filter((link) => performanceEvaluationEnabled || !(
+        /^(?:\/dashboard)?\/evaluations(?:[\/?#]|$)/i.test(link.path ?? "") ||
+        isEvaluationSuggestion(link.label ?? "")
+      ))
+      .map((link) => link.label)
+      .filter(Boolean);
+    if (linkLabels.length) {
+      text += `\n\nMódulos relacionados: ${linkLabels.join(", ")}.`;
     }
     return { role: "eva", text };
   }
@@ -845,7 +856,7 @@ function NanabotChat() {
       <>
         <PageHero
           eyebrow="UN POCO DE AYUDA, MUCHAS POSIBILIDADES"
-          title="Hola, soy Eva."
+          title={performanceEvaluationEnabled ? "Hola, soy Eva." : "Asistente de consulta"}
           description="El asistente de consulta está reservado a perfiles de administración por ahora."
         />
         <div className="pn-empty">
@@ -853,7 +864,7 @@ function NanabotChat() {
           <h3>Asistente no disponible para tu rol</h3>
           <p>
             Nanabot solo consulta para perfiles ADMIN/SUPER_ADMIN. La
-            disponibilidad de Eva de consulta para todos los colaboradores
+            disponibilidad del asistente de consulta para todos los colaboradores
             requiere un backend autorizado (capacidad pendiente del plan).
           </p>
           <Link className="pn-button" to="/dashboard">
