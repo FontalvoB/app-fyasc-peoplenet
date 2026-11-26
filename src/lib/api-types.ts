@@ -297,6 +297,7 @@ export type TipoSolicitudNovedad =
   | "VACACIONES"
   | "CITACION_MEDICA"
   | "INCAPACIDAD"
+  | "NOVEDAD_ASISTENCIA"
   | "OTRO";
 
 /** com.kpis.solicitud.enums.EstadoSolicitudNovedad (Etiquetas exactas del
@@ -352,6 +353,8 @@ export interface SolicitudNovedadCreateRequest {
   aprobadorId: number;
   aprobadorNombre?: string | null;
   aprobadorCargo?: string | null;
+  /** Marcación de asistencia asociada cuando tipo === 'NOVEDAD_ASISTENCIA'. */
+  attendanceRecordId?: number | null;
   /** Adjuntos en base64 (máx. ~5MB por archivo, validado por el backend). */
   documentos: SolicitudDocumentoUploadRequest[];
 }
@@ -407,6 +410,7 @@ export interface SolicitudNovedadResponse {
   fechaCreacion: string | null;
   modificadoPorUsername: string | null;
   fechaModificacion: string | null;
+  attendanceRecordId?: number | null;
   documentos: SolicitudNovedadDocumentoResponse[] | null;
   /** El listado /mias no trae historial (verificado): solo el detalle /{id}. */
   historial: SolicitudNovedadHistorialResponse[] | null;

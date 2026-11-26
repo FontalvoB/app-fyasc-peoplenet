@@ -1,5 +1,10 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import {
+  getAttendanceContext,
+  type AttendanceContextDto,
+} from "../lib/attendance-api";
+import { EVENT_LABELS, formatIsoDateTime } from "./attendance/attendance-helpers";
 import {
   Icon,
   Badge,
@@ -136,6 +141,29 @@ export function Home() {
   const solStats = useApi<SolicitudNovedadStatsResponse>(
     "/solicitudes/stats?scope=propias",
   );
+
+  // Resumen compacto de asistencia del día (degrada limpiamente si el endpoint no responde 200).
+  const [attendanceCtx, setAttendanceCtx] = useState<AttendanceContextDto | null>(null);
+  const [attendanceLoaded, setAttendanceLoaded] = useState(false);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    getAttendanceContext(controller.signal)
+      .then((data) => {
+        if (!controller.signal.aborted) setAttendanceCtx(data);
+      })
+      .catch(() => {
+        // Degradación limpia en Home si el módulo aún no responde 200 o el usuario no tiene permiso.
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setAttendanceLoaded(true);
+      });
+    return () => controller.abort();
+  }, []);
+
+  const latestTodayPunch = attendanceCtx?.todayRecords?.length
+    ? attendanceCtx.todayRecords[attendanceCtx.todayRecords.length - 1]
+    : null;
 
   // Documentos corporativos + confirmaciones del usuario (consultas M5).
   const documents = useApi<CorporateDocumentDTO[]>("/corporate-documents", {
@@ -462,6 +490,31 @@ export function Home() {
           </span>
         </Link>}
       </div>
+      <section className="pn-panel pn-home-attendance" aria-label="Estado de asistencia hoy">
+        <div className="pn-home-attendance-info">
+          <span className="stat-icon stat-0">
+            <Icon name="fingerprint" />
+          </span>
+          <div>
+            <span className="pn-eyebrow">ASISTENCIA HOY</span>
+            <strong>Estado de asistencia hoy</strong>
+            <p>
+              {!attendanceLoaded
+                ? "Consultando tu estado de jornada…"
+                : !attendanceCtx
+                  ? "Consulta tus marcaciones y visitas de campo."
+                  : !attendanceCtx.consent?.accepted
+                    ? "Autorización de privacidad pendiente para registrar marcaciones."
+                    : latestTodayPunch
+                      ? `Última marca: ${EVENT_LABELS[latestTodayPunch.eventType]} · ${formatIsoDateTime(latestTodayPunch.serverTimestamp)}`
+                      : "Pendiente por registrar tu entrada de hoy."}
+            </p>
+          </div>
+        </div>
+        <Link className="pn-button secondary" to="/dashboard/attendance">
+          <Icon name="fingerprint" size={18} /> Ir a Asistencia
+        </Link>
+      </section>
       <div className="pn-section-heading">
         <div>
           <h2>¿Qué necesitas hacer hoy?</h2>

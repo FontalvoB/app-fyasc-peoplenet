@@ -54,6 +54,12 @@ import {
   type SelfCertificate,
 } from "../lib/self-certificates";
 import { ProfileActions, ProfilePhoto } from "./ProfileActions";
+import {
+  getAttendanceContext,
+  revokeAttendanceConsent,
+  type AttendanceConsentDto,
+} from "../lib/attendance-api";
+import { formatIsoDateTime } from "./attendance/attendance-helpers";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Ayudantes de presentación (locales; los datos siempre vienen de la API)
@@ -636,7 +642,113 @@ export function Profile(_props: {
         <div style={{ gridColumn: "1 / -1" }}>
           <ProfileActions />
         </div>
+        <div style={{ gridColumn: "1 / -1" }}>
+          <AttendancePrivacySection />
+        </div>
       </div>
     </>
+  );
+}
+
+function AttendancePrivacySection() {
+  const [consent, setConsent] = useState<AttendanceConsentDto | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [unavailable, setUnavailable] = useState(false);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    getAttendanceContext(controller.signal)
+      .then((ctx) => {
+        if (!controller.signal.aborted) {
+          setConsent(ctx.consent);
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setUnavailable(true);
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      });
+    return () => controller.abort();
+  }, []);
+
+  const handleRevoke = async () => {
+    setBusy(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const updated = await revokeAttendanceConsent();
+      setConsent(updated);
+      setMessage(
+        "Autorización revocada. Para volver a marcar asistencia deberás otorgarla nuevamente.",
+      );
+    } catch (err) {
+      setError(toApiError(err).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="pn-panel pn-form" aria-labelledby="attendance-privacy-heading">
+      <h2 id="attendance-privacy-heading">Privacidad y asistencia (Ley 1581)</h2>
+      <p className="small-muted">
+        Gestiona tu autorización para captura puntual de GPS y fotografía en vivo en marcaciones
+        de jornada y visitas de campo.
+      </p>
+      {loading ? (
+        <LoadingNote label="Consultando estado de autorización…" />
+      ) : unavailable ? (
+        <p className="pn-info" role="status">
+          El estado de autorización de asistencia no está disponible para tu perfil en este momento.
+        </p>
+      ) : consent?.accepted ? (
+        <>
+          <div className="pn-info" role="status">
+            <Icon name="verified_user" size={18} />
+            <span>
+              Autorización activa (política {consent.policyVersion ?? "v2026.1"}) · aceptada el{" "}
+              {formatIsoDateTime(consent.acceptedAt)} · retención de fotos:{" "}
+              {consent.photoRetentionDays} días.
+            </span>
+          </div>
+          <div className="form-actions">
+            <span className="small-muted">
+              Si revocas el permiso no podrás registrar nuevas marcaciones hasta autorizarlo de nuevo.
+            </span>
+            <Button secondary disabled={busy} onClick={() => void handleRevoke()}>
+              <Icon name="gpp_bad" size={18} />
+              {busy ? "Revocando…" : "Revocar autorización"}
+            </Button>
+          </div>
+        </>
+      ) : (
+        <div className="pn-info" role="status">
+          <Icon name="info" size={18} />
+          <span>
+            Autorización actualmente no activa
+            {consent?.revokedAt ? ` (revocada el ${formatIsoDateTime(consent.revokedAt)})` : ""}.
+            Puedes otorgarla cuando ingreses al módulo de Asistencia.
+          </span>
+        </div>
+      )}
+      {message && (
+        <p className="pn-info" role="status">
+          {message}
+        </p>
+      )}
+      {error && (
+        <p className="pn-info" role="alert" style={{ color: "var(--pn-danger)" }}>
+          {error}
+        </p>
+      )}
+    </section>
   );
 }

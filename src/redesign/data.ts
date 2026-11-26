@@ -2,6 +2,7 @@ import { performanceEvaluationEnabled } from "../lib/feature-flags";
 
 export const nav = [
   ["", "space_dashboard", "Resumen"],
+  ["attendance", "fingerprint", "Asistencia"],
   ["kpis", "monitoring", "Mis indicadores"],
   ["requests", "event_available", "Permisos y solicitudes"],
   ["documents", "folder_open", "Documentos"],

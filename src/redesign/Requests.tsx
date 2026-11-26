@@ -82,6 +82,11 @@ const TIPO_OPTIONS: ReadonlyArray<{
     icon: "medical_services",
   },
   { value: "INCAPACIDAD", label: "Incapacidad", icon: "health_and_safety" },
+  {
+    value: "NOVEDAD_ASISTENCIA",
+    label: "Novedad de asistencia",
+    icon: "fingerprint",
+  },
   { value: "OTRO", label: "Otro", icon: "more_horiz" },
 ];
 
@@ -617,8 +622,34 @@ function SolicitudDetail({
  */
 export function RequestForm() {
   const history = useHistory();
+  const location = useLocation();
 
-  const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const initialQuery = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    const rawTipo = params.get("tipo");
+    const validTipo = TIPO_OPTIONS.find((option) => option.value === rawTipo)?.value;
+    const rawRecordId = params.get("attendanceRecordId");
+    const parsedRecordId = rawRecordId ? Number(rawRecordId) : NaN;
+    return {
+      tipo: validTipo,
+      attendanceRecordId:
+        Number.isInteger(parsedRecordId) && parsedRecordId > 0 ? parsedRecordId : null,
+    };
+  }, [location.search]);
+
+  const [form, setForm] = useState<FormState>(() => ({
+    ...EMPTY_FORM,
+    tipo: initialQuery.tipo ?? EMPTY_FORM.tipo,
+    fechaDesde:
+      initialQuery.tipo === "NOVEDAD_ASISTENCIA"
+        ? new Date(Date.now() - new Date().getTimezoneOffset() * 60_000)
+            .toISOString()
+            .slice(0, 10)
+        : EMPTY_FORM.fechaDesde,
+  }));
+  const [attendanceRecordId, setAttendanceRecordId] = useState<number | null>(
+    initialQuery.attendanceRecordId,
+  );
   const [touchedEmpresa, setTouchedEmpresa] = useState(false);
   const [touchedAprobador, setTouchedAprobador] = useState(false);
   const [fileError, setFileError] = useState("");
@@ -657,6 +688,20 @@ export function RequestForm() {
       ? [suggestion, ...options]
       : options;
   }, [aprobadores.state.data, sugerido.state.data]);
+
+  // Sincroniza query params si el usuario navega a /requests/new con ?tipo=...
+  useEffect(() => {
+    if (initialQuery.tipo) {
+      setForm((prev) => ({
+        ...prev,
+        tipo: initialQuery.tipo ?? prev.tipo,
+        fechaDesde:
+          prev.fechaDesde ||
+          (initialQuery.tipo === "NOVEDAD_ASISTENCIA" ? todayIso() : ""),
+      }));
+    }
+    setAttendanceRecordId(initialQuery.attendanceRecordId);
+  }, [initialQuery]);
 
   // Prefill de empresa del /me solo si el usuario no eligió una.
   useEffect(() => {
@@ -799,6 +844,8 @@ export function RequestForm() {
         aprobadorId: Number(form.aprobadorId),
         aprobadorNombre: aprobador?.nombre ?? null,
         aprobadorCargo: aprobador?.cargo ?? null,
+        attendanceRecordId:
+          form.tipo === "NOVEDAD_ASISTENCIA" ? attendanceRecordId : null,
         documentos: attaches,
       };
       const response = await createSolicitud(payload);
@@ -904,7 +951,7 @@ export function RequestForm() {
               Fecha de inicio
               <input
                 type="date"
-                min={today}
+                min={form.tipo === "NOVEDAD_ASISTENCIA" ? undefined : today}
                 required
                 value={form.fechaDesde}
                 onChange={(e) => {
@@ -924,12 +971,23 @@ export function RequestForm() {
               Fecha de finalización
               <input
                 type="date"
-                min={form.fechaDesde || today}
+                min={
+                  form.fechaDesde ||
+                  (form.tipo === "NOVEDAD_ASISTENCIA" ? undefined : today)
+                }
                 value={form.fechaHasta}
                 onChange={(e) => update("fechaHasta", e.target.value)}
               />
             </label>
           </div>
+          {form.tipo === "NOVEDAD_ASISTENCIA" && attendanceRecordId != null && (
+            <p className="pn-info" role="status">
+              <Icon name="fingerprint" size={16} />
+              <span>
+                Solicitud vinculada a la marcación de asistencia #{attendanceRecordId}.
+              </span>
+            </p>
+          )}
           {TIPOS_CON_HORAS.includes(form.tipo) && (
             <div className="form-two">
               <label>
@@ -1218,6 +1276,7 @@ const TIPOS_CON_HORAS: ReadonlyArray<TipoSolicitudNovedad> = [
   "PERMISO",
   "LICENCIA",
   "CITACION_MEDICA",
+  "NOVEDAD_ASISTENCIA",
 ];
 /** Duración en días solo para estos tipos. */
 const TIPOS_CON_DIAS: ReadonlyArray<TipoSolicitudNovedad> = [

@@ -30,6 +30,8 @@ import { Documents, Reader } from "./Documents";
 import { Team } from "./Team";
 import { Evaluations, Chat } from "./Evaluations";
 import { Certificates, Notifications, Profile } from "./Account";
+import { AttendanceHub } from "./attendance/AttendanceHub";
+import { AttendanceReceipt } from "./attendance/AttendanceReceipt";
 
 export default function Workspace() {
   const location = useLocation();
@@ -406,6 +408,12 @@ export default function Workspace() {
           <Switch>
             <Route exact path="/dashboard">
               <Home />
+            </Route>
+            <Route exact path="/dashboard/attendance">
+              <AttendanceHub />
+            </Route>
+            <Route path="/dashboard/attendance/receipt/:kind/:id">
+              <AttendanceReceipt />
             </Route>
             <Route path="/dashboard/kpis">
               <Kpis notify={setToast} />
